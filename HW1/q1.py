@@ -21,4 +21,4 @@ I_transformed = cv2.cvtColor(I_hsv, cv2.COLOR_HSV2BGR)
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
 
-cv2.imwrite('test.jpg', I_transformed)
+cv2.imwrite('res01.jpg', I_transformed)

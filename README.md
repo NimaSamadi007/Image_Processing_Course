@@ -17,5 +17,6 @@ Filtering an image by using OpenCV, double for implementation, and matrix additi
 
 ### Q6
 Histogram specification code to enhance an image's quality
-........
+
+___
 ## HW2
