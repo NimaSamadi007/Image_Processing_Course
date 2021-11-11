@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-from numpy.core.fromnumeric import amax, amin
 
 ## -------------------------- FUNCIONS ----------------------- ##
 def showImg(img, res, title='input image'):
