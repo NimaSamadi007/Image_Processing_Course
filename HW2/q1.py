@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import cv2
 
 ## -------------------------- FUNCIONS ----------------------- ##
@@ -19,7 +20,7 @@ def scaleIntensities(img):
 ## -------------------------- MAIN ----------------------- ##
 
 img = cv2.imread('./flowers.blur.png')
-
+"""
 ## Part a)
 sigma = 2
 
@@ -65,9 +66,18 @@ k = 5
 img_sharpend_2 = img.astype(int) + k * (unsharp_mask.astype(int))
 img_sharpend_2 = scaleIntensities(img_sharpend_2)
 cv2.imwrite('res07.jpg', img_sharpend_2)
-
+"""
 ## Part c)
+img_fft = np.fft.fft2(img)
+img_fft_shifted = np.fft.fftshift(img_fft)
+fft_amp = np.abs(img_fft_shifted)
+log_fft_amp = np.log(fft_amp)
 
+log_fft_amp_scaled = scaleIntensities(log_fft_amp)
+
+print(np.amin(log_fft_amp_scaled), np.amax(log_fft_amp_scaled))
+plt.imshow(log_fft_amp_scaled, cmap='gray')
+plt.show()
 ## Part d)
 
 

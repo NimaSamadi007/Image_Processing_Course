@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from numpy.core.fromnumeric import nonzero
+import matplotlib.pyplot as plt
 
 def showImg(img, res_factor, title='input image'):
     res = (int(img.shape[0]*res_factor), int(img.shape[1]*res_factor))
@@ -33,9 +33,11 @@ patch = cv2.imread('patch.png', cv2.IMREAD_COLOR)
 result = cv2.matchTemplate(img, patch, cv2.TM_CCORR_NORMED)
 
 cv2.normalize(result, result, alpha=0.0, beta=1.0, norm_type=cv2.NORM_MINMAX)
-# result = (result / np.amax(result)) * 255
+result = result * 255
 
-locations = np.array(np.nonzero(result >= (1 - 7 * 10 ** (-3) )))
+locations = np.array(np.nonzero(result >= 253.5))
+
+print(locations.shape)
 
 local_max = []
 
@@ -50,9 +52,17 @@ for i in range(locations.shape[1]):
         local_max.append([x, y])
 
 local_max = np.array(local_max)
+print(local_max.shape)
 
 
 local_max = local_max.T
+
+fig, axes = plt.subplots(3)
+axes[0].plot(np.abs(np.diff(local_max[0, :])))
+axes[1].plot(np.abs(np.diff(local_max[1, :])))
+axes[2].scatter(local_max[0, :], local_max[1, :])
+plt.show()
+
 # xs = local_max[0]
 # ys = local_max[1]
 # print(result[xs, ys])
@@ -70,7 +80,7 @@ for i in range(local_max.shape[1]):
 #                     color=(0, 0, 255), thickness=5, lineType=8, shift=0)
 
 
-showImg(img, 0.2, 'found')
+# showImg(img, 0.2, 'found')
 # showImg(result.astype(np.uint8), 0.2, 'result')
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
