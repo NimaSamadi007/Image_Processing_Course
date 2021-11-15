@@ -12,20 +12,19 @@ def showImg(img, res_factor, title='input image'):
 # scales picture's intensities to the range of [0, 255] 
 # img: numpy array
 def scaleIntensities(img):
-    if np.amin(img) < 0:
-        img_scaled = img + (-np.amin(img))
-    else:
-        img_scaled = np.copy(img)
+    img_scaled = img + (-np.amin(img))
     img_scaled = (img_scaled / np.amax(img_scaled)) * 255
     return img_scaled.astype(np.uint8)
 
 def calAbsFFT(img_fft):
-    fft_amp = np.log(np.abs(img_fft))
-    fft_amp[np.nonzero(fft_amp == -np.inf)] = np.nextafter(0, 1)
+    fft_amp = np.abs(img_fft)
     fft_amp = scaleIntensities(fft_amp)
-
     return fft_amp.astype(np.uint8)
 
+def showRange(matrix):
+    print("The range is [{}, {}] and the type is {}".format(np.amin(matrix), 
+                                                            np.amax(matrix),
+                                                            matrix.dtype))
 ## -------------------------- MAIN ----------------------- ##
 
 img = cv2.imread('./flowers.blur.png', cv2.IMREAD_COLOR)
@@ -37,8 +36,8 @@ sigma = 1
 gauss_kernal = cv2.getGaussianKernel(6*sigma+1, sigma)
 
 gauss_kernal_mat = gauss_kernal @ gauss_kernal.T # matrix form
-gauss_kernal_mat_repr = scaleIntensities(gauss_kernal_mat)
-gauss_kernal_mat_repr = cv2.resize(gauss_kernal_mat_repr, (500, 500))
+gauss_kernal_mat_repr = cv2.resize(gauss_kernal_mat, (500, 500))
+gauss_kernal_mat_repr = scaleIntensities(gauss_kernal_mat_repr)
 cv2.imwrite('res01.jpg', gauss_kernal_mat_repr)
 
 # smooth image
@@ -58,10 +57,12 @@ print(np.amin(img_sharpend), np.amax(img_sharpend))
 img_sharpend = scaleIntensities(img_sharpend)
 cv2.imwrite('res04.jpg', img_sharpend)
 
-showImg(img, 0.8, 'img')
-showImg(img_sharpend, 0.8, 'sharpened')
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# showImg(img, 0.8, 'img')
+# showImg(img_sharpend, 0.8, 'sharpened')
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+
 ## Part b)
 sigma = 2
 gauss_kernal = cv2.getGaussianKernel(6*sigma+1, sigma)
@@ -96,71 +97,60 @@ img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 img_fft = np.fft.fft2(img_hsv[:, :, 2].astype(float))
 img_fft_shifted = np.fft.fftshift(img_fft)
 
-log_fft_amp = calAbsFFT(img_fft_shifted)
 
-# showImg(log_fft_amp, 0.8, 'log fft')
+fft_amp_log = np.log(np.abs(img_fft_shifted))
+
+fft_amp_log_repr = scaleIntensities(fft_amp_log)
+
+
+# showImg(fft_amp_log_repr, 0.8, 'log fft')
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
 
-cv2.imwrite('res08.jpg', log_fft_amp)
+cv2.imwrite('res08.jpg', fft_amp_log_repr)
 
-# low pass gaussian filter
-sigma = 2
+# low pass filter in spatial domain
+sigma = 30
 gauss_kernal = cv2.getGaussianKernel(6*sigma+1, sigma)
 gauss_kernal_mat = gauss_kernal @ gauss_kernal.T 
 
-M, N = img_fft_shifted.shape
+M, N = img_fft.shape
+gauss_ext = np.zeros((M, N), dtype=gauss_kernal_mat.dtype)
+gauss_ext[M//2-3*sigma : M//2+3*sigma+1, N//2-3*sigma : N//2+3*sigma+1] = gauss_kernal_mat
 
-low_pass_filter = np.fft.fft2(gauss_kernal_mat)
-low_pass_shifted = np.fft.fftshift(low_pass_filter)
+lowpass_filter = np.fft.fft2(gauss_ext)
+lowpass_filter = np.fft.fftshift(lowpass_filter)
 
-low_pass_ext = np.zeros((M, N), dtype=img_fft.dtype)
-test = calAbsFFT(low_pass_shifted)
-test = cv2.resize(test, (500, 500))
-low_pass_ext[M//2-3*sigma : M//2+3*sigma+1, N//2-3*sigma : N//2+3*sigma+1] = low_pass_shifted
-
-showImg(test, 0.8, 'highpass filter')
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# high pass filter:
 
 
-H = 1 - low_pass_ext
+# highpass_filter_repr = calAbsFFT(highpass_filter)
+lowpass_filter_repr = calAbsFFT(lowpass_filter)
 
-high_pass_repr = calAbsFFT(H)
-high_pass_repr = cv2.resize(high_pass_repr, (500, 500))
 
-print(high_pass_repr)
+# H = 1 - np.abs(lowpass_filter)
+H = 1 - lowpass_filter
+highpass_filter_repr = scaleIntensities(H)
 
-cv2.imwrite('res09.jpg', high_pass_repr)
-
-# showImg(high_pass_repr, 0.8, 'highpass filter')
+# showImg(lowpass_filter_repr, 1, 'lowpass filter')
+# showImg(highpass_filter_repr, 1, 'highpass filter')
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
-
-# 1 + k * H * F calculation:
 
 k = 1
-filtered_img_fft = 1 + k * H * img_fft_shifted
+img_filtered_freq = 1 + k * H * img_fft_shifted
 
-filtered_img_fft_repr = calAbsFFT(filtered_img_fft)
-# H_f = calAbsFFT(H)
+img_filtered_freq = np.fft.ifftshift(img_filtered_freq)
+img_filtered = np.fft.ifft2(img_filtered_freq)
 
-# showImg(filtered_img_fft_repr, 0.8, 'filtered img fft')
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+img_filtered_repr = calAbsFFT(img_filtered)
 
-cv2.imwrite('res10.jpg', filtered_img_fft_repr)
+img_hsv[:, :, 2] = img_filtered_repr
+img_rgb = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
 
-# filtered_img = np.fft.ifftshift(filtered_img_fft)
-# filtered_img = np.fft.ifft2(filtered_img)
-# print(filtered_img.shape)
-
-
-# high_pass_filter_repr = cv2.resize(high_pass_filter, (500, 500))
-# cv2.imwrite('res01.jpg', gauss_kernal_mat_repr)
-
-# fig.tight_layout()
-# plt.show()
+showImg(img_rgb, 1, 'filtered img')
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
 ## Part d)
 
