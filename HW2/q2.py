@@ -8,6 +8,14 @@ def showImg(img, res_factor, title='input image'):
     cv2.imshow(title, img_show)
     return
 
+def scaleIntensities(img):
+    if np.amin(img) < 0:
+        img_scaled = img + (-np.amin(img))
+    else:
+        img_scaled = np.copy(img)
+    img_scaled = (img_scaled / np.amax(img_scaled)) * 255
+    return img_scaled.astype(np.uint8)
+
 def calProperIndex(x, y, x_thr, y_thr, M, N):
     xi = x
     yi = y
@@ -25,17 +33,23 @@ def calProperIndex(x, y, x_thr, y_thr, M, N):
 
 
 
-
 img = cv2.imread('Greek-ship.jpg', cv2.IMREAD_COLOR)
 patch = cv2.imread('patch.png', cv2.IMREAD_COLOR)
 
+sigma = 5
+gauss_kernal = cv2.getGaussianKernel(6*sigma+1, sigma=sigma)
+img = cv2.filter2D(img.astype(float), -1, gauss_kernal, borderType=cv2.BORDER_CONSTANT)
+img =scaleIntensities(img)
+
+patch = cv2.filter2D(patch.astype(float), -1, gauss_kernal, borderType=cv2.BORDER_CONSTANT)
+patch =scaleIntensities(patch)
 # SSD:
 result = cv2.matchTemplate(img, patch, cv2.TM_CCORR_NORMED)
 
 cv2.normalize(result, result, alpha=0.0, beta=1.0, norm_type=cv2.NORM_MINMAX)
 result = result * 255
 
-locations = np.array(np.nonzero(result >= 253.5))
+locations = np.array(np.nonzero(result >= 253))
 
 print(locations.shape)
 
@@ -57,11 +71,11 @@ print(local_max.shape)
 
 local_max = local_max.T
 
-fig, axes = plt.subplots(3)
-axes[0].plot(np.abs(np.diff(local_max[0, :])))
-axes[1].plot(np.abs(np.diff(local_max[1, :])))
-axes[2].scatter(local_max[0, :], local_max[1, :])
-plt.show()
+# fig, axes = plt.subplots(3)
+# axes[0].plot(np.abs(np.diff(local_max[0, :])))
+# axes[1].plot(np.abs(np.diff(local_max[1, :])))
+# axes[2].scatter(local_max[0, :], local_max[1, :])
+# plt.show()
 
 # xs = local_max[0]
 # ys = local_max[1]
@@ -80,7 +94,7 @@ for i in range(local_max.shape[1]):
 #                     color=(0, 0, 255), thickness=5, lineType=8, shift=0)
 
 
-# showImg(img, 0.2, 'found')
+showImg(img, 0.2, 'found')
 # showImg(result.astype(np.uint8), 0.2, 'result')
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+cv2.waitKey(0)
+cv2.destroyAllWindows()

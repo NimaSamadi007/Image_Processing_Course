@@ -12,7 +12,10 @@ def showImg(img, res_factor, title='input image'):
 # scales picture's intensities to the range of [0, 255] 
 # img: numpy array
 def scaleIntensities(img):
-    img_scaled = img + (-np.amin(img))
+    if np.amin(img) < 0:
+        img_scaled = img + (-np.amin(img))
+    else:
+        img_scaled = np.copy(img)
     img_scaled = (img_scaled / np.amax(img_scaled)) * 255
     return img_scaled.astype(np.uint8)
 
