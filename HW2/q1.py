@@ -24,6 +24,16 @@ def calAbsFFT(img_fft):
     fft_amp = scaleIntensities(fft_amp)
     return fft_amp.astype(np.uint8)
 
+def repeatRow(row, num):
+    row_format = row.reshape(1, row.shape[0])
+    repeater = np.ones((num, 1), dtype=row.dtype)
+    return repeater @ row_format
+
+def repeatCol(col, num):
+    col_format = col.reshape(col.shape[0], 1)
+    repeater = np.ones((1, num), dtype=col.dtype)
+    return col_format @ repeater
+
 def showRange(matrix):
     print("The range is [{}, {}] and the type is {}".format(np.amin(matrix), 
                                                             np.amax(matrix),
@@ -89,12 +99,12 @@ print(np.amin(img_sharpend), np.amax(img_sharpend))
 img_sharpend = scaleIntensities(img_sharpend)
 cv2.imwrite('res07.jpg', img_sharpend)
 
-showImg(img, 0.8, 'img')
-showImg(img_sharpend, 0.8, 'sharpened')
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# showImg(img, 0.8, 'img')
+# showImg(img_sharpend, 0.8, 'sharpened')
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
 
-"""
+
 ## Part c)
 img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 img_fft = np.fft.fft2(img_hsv[:, :, 2].astype(float))
@@ -104,11 +114,6 @@ img_fft_shifted = np.fft.fftshift(img_fft)
 fft_amp_log = np.log(np.abs(img_fft_shifted))
 
 fft_amp_log_repr = scaleIntensities(fft_amp_log)
-
-
-# showImg(fft_amp_log_repr, 0.8, 'log fft')
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
 
 cv2.imwrite('res08.jpg', fft_amp_log_repr)
 
@@ -126,22 +131,13 @@ lowpass_filter = np.fft.fftshift(lowpass_filter)
 
 # high pass filter:
 
+H = 1 - np.abs(lowpass_filter)
+highpass_filter_repr = calAbsFFT(H)
 
-# highpass_filter_repr = calAbsFFT(highpass_filter)
-lowpass_filter_repr = calAbsFFT(lowpass_filter)
+cv2.imwrite('res09.jpg', highpass_filter_repr)
 
-
-# H = 1 - np.abs(lowpass_filter)
-H = 1 - lowpass_filter
-highpass_filter_repr = scaleIntensities(H)
-
-# showImg(lowpass_filter_repr, 1, 'lowpass filter')
-# showImg(highpass_filter_repr, 1, 'highpass filter')
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
-
-k = 1
-img_filtered_freq = 1 + k * H * img_fft_shifted
+k = 0.4
+img_filtered_freq = (1 + k * H) * img_fft_shifted
 
 img_filtered_freq = np.fft.ifftshift(img_filtered_freq)
 img_filtered = np.fft.ifft2(img_filtered_freq)
@@ -151,10 +147,60 @@ img_filtered_repr = calAbsFFT(img_filtered)
 img_hsv[:, :, 2] = img_filtered_repr
 img_rgb = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
 
-showImg(img_rgb, 1, 'filtered img')
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-
+cv2.imwrite('res10.jpg', img_rgb)
+"""
 ## Part d)
 
+img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+img_fft = np.fft.fft2(img_hsv[:, :, 2].astype(float))
+img_fft_shifted = np.fft.fftshift(img_fft)
 
+M, N = img_fft_shifted.shape
+
+v_row = np.arange(N) - N//2
+u_col = np.arange(M) - M//2
+
+v_matrix = repeatRow(v_row, M)
+u_matrix = repeatCol(u_col, N)
+
+lap_mat = 4 * (np.pi ** 2) * (v_matrix ** 2 + u_matrix ** 2)
+
+
+int_mat = lap_mat.astype(img_fft_shifted.dtype) * img_fft_shifted
+
+
+int_mat_repr = scaleIntensities(np.abs(int_mat))
+
+# showImg(int_mat_repr, 0.8, 'intermediate matrix')
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+cv2.imwrite('res11.jpg', int_mat_repr)
+
+mask_img = np.fft.ifftshift(int_mat)
+mask_img = np.fft.ifft2(mask_img)
+
+mask_img_repr = scaleIntensities(np.abs(mask_img))
+
+# showImg(mask_img_repr, 0.8, 'mask image')
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+cv2.imwrite('res12.jpg', mask_img_repr)
+
+k = 1
+
+
+sharpened_freq = img_fft_shifted + k * int_mat
+
+sharpened_freq = np.fft.ifftshift(sharpened_freq)
+sharpened_img = np.fft.ifft2(sharpened_freq)
+
+sharpened_img = scaleIntensities(np.abs(sharpened_img))
+
+img_hsv[:, :, 2] = sharpened_img
+img_rgb = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
+
+showImg(img_rgb, 0.8, 'filtered image')
+cv2.waitKey(0)
+cv2.destroyAllWindows()
