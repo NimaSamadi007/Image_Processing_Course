@@ -32,6 +32,11 @@ def calProperIndex(x, y, x_thr, y_thr, M, N):
     return (xi, xf), (yi, yf)
 
 
+def showRange(matrix):
+    print("The range is [{}, {}] and the type is {}".format(np.amin(matrix), 
+                                                            np.amax(matrix),
+                                                            matrix.dtype))
+
 
 img = cv2.imread('Greek-ship.jpg', cv2.IMREAD_COLOR)
 patch = cv2.imread('patch.png', cv2.IMREAD_COLOR)
@@ -39,37 +44,49 @@ patch = cv2.imread('patch.png', cv2.IMREAD_COLOR)
 sigma = 5
 gauss_kernal = cv2.getGaussianKernel(6*sigma+1, sigma=sigma)
 img = cv2.filter2D(img.astype(float), -1, gauss_kernal, borderType=cv2.BORDER_CONSTANT)
-img =scaleIntensities(img)
 
-patch = cv2.filter2D(patch.astype(float), -1, gauss_kernal, borderType=cv2.BORDER_CONSTANT)
-patch =scaleIntensities(patch)
+unsharp_mask = cv2.Laplacian(img.astype(np.float64), ddepth=-1, ksize=1, borderType=cv2.BORDER_CONSTANT)
+
+k = 1.2
+img = img.astype(np.float64) + k * unsharp_mask
+img[np.nonzero(img < 0)] = 0
+img = (img / np.amax(img)) * 255
+img = img.astype(np.uint8)
+# patch = cv2.filter2D(patch.astype(float), -1, gauss_kernal, borderType=cv2.BORDER_CONSTANT)
+# patch = patch.astype(np.uint8)
+# showRange(img)
 # SSD:
 result = cv2.matchTemplate(img, patch, cv2.TM_CCORR_NORMED)
-
 cv2.normalize(result, result, alpha=0.0, beta=1.0, norm_type=cv2.NORM_MINMAX)
 result = result * 255
 
-locations = np.array(np.nonzero(result >= 253))
+# showImg(img, 0.2, 'blured img')
+# showImg(result.astype(np.uint8), 0.2, 'result')
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+locations = np.array(np.nonzero(result >= 255 - 1))
+
 
 print(locations.shape)
 
 local_max = []
 
-M, N = result.shape
+# M, N = result.shape
 
-for i in range(locations.shape[1]):
-    x = locations[0, i]
-    y = locations[1, i]
-    (xi, xf), (yi, yf) = calProperIndex(x, y, patch.shape[0], patch.shape[1], M, N)
-    cond = np.array(np.nonzero(result[x, y] > result[xi:xf, yi:yf]))
-    if cond.shape[1] >= (patch.shape[0] * patch.shape[1] - 1):
-        local_max.append([x, y])
+# for i in range(locations.shape[1]):
+#     x = locations[0, i]
+#     y = locations[1, i]
+#     (xi, xf), (yi, yf) = calProperIndex(x, y, patch.shape[0], patch.shape[1], M, N)
+#     cond = np.array(np.nonzero(result[x, y] > result[xi:xf, yi:yf]))
+#     if cond.shape[1] >= (patch.shape[0] * patch.shape[1] - 1):
+#         local_max.append([x, y])
 
-local_max = np.array(local_max)
-print(local_max.shape)
+# local_max = np.array(local_max)
+# print(local_max.shape)
 
 
-local_max = local_max.T
+local_max = locations
 
 # fig, axes = plt.subplots(3)
 # axes[0].plot(np.abs(np.diff(local_max[0, :])))
@@ -93,8 +110,7 @@ for i in range(local_max.shape[1]):
 # cv2.rectangle(img, (3237, 1338), (3237+patch.shape[1], 1338+patch.shape[0]), 
 #                     color=(0, 0, 255), thickness=5, lineType=8, shift=0)
 
-
 showImg(img, 0.2, 'found')
-# showImg(result.astype(np.uint8), 0.2, 'result')
+showImg(result.astype(np.uint8), 0.2, 'result')
 cv2.waitKey(0)
 cv2.destroyAllWindows()
