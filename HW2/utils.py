@@ -14,9 +14,9 @@ def repeatCol(col, num):
     return col_format @ repeater
 
 def showRange(matrix):
-    print("The range is [{}, {}] and the type is {}".format(np.amin(matrix), 
-                                                            np.amax(matrix),
-                                                            matrix.dtype))
+    print("The abs range is [{}, {}] and the type is {}".format(np.abs(np.amin(matrix)), 
+                                                                np.abs(np.amax(matrix)),
+                                                                matrix.dtype))
 
 def calGaussFilter(dsize, sigma):
     # calculates gaussian kernel - size must be odd
@@ -33,7 +33,7 @@ def showImg(img, res_factor, title='input image'):
     cv2.imshow(title, img_show)
     return
 
-def scaleIntensities(img, mode='Z'):
+def scaleGrayIntensities(img, mode='Z'):
     ## scale intensities to be shown as a picture
     ## modes:
     #   1) Z: scales negatives to zero (default)
@@ -48,3 +48,15 @@ def scaleIntensities(img, mode='Z'):
         raise ValueError("Unknown mode!")
     img_scaled = (img_scaled / np.amax(img_scaled)) * 255
     return img_scaled.astype(np.uint8)
+
+def calImgFFT(img):
+    img_fft = np.zeros(img.shape, dtype=np.complex128)
+    for i in range(3):
+        img_fft[:, :, i] = np.fft.fftshift(np.fft.fft2(img[:, :, i]))
+    return img_fft
+
+def calImgIFFT(img_fft):
+    img = np.zeros(img_fft.shape, dtype=np.complex128)
+    for i in range(3):
+        img[:, :, i] = np.fft.ifft2(np.fft.ifftshift(img_fft[:, :, i]))
+    return img
