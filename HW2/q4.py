@@ -3,26 +3,71 @@ import numpy as np
 import cv2
 import utils as utl
 
+## ------------------- FUNCTIONS ------------------------- ##
+def calAffineTran(pts1, pts2):
+    ## Fits an affine transformation from pts1 to pts2
+    ## Equation is in the form of AX = B (same as course notations)
+    if pts1.shape != (3, 2) or pts2.shape != (3, 2):
+        raise ValueError("points shapes must be (3, 2)")
+    else:
+        A = np.zeros((6, 6), dtype=np.float64)
+        for i in range(3):
+            xi = pts1[i, 0]
+            yi = pts1[i, 1]
+            A[2*i:2*(i+1), :] = np.array([[xi, yi, 1, 0, 0, 0],
+                                          [0, 0, 0, xi, yi, 1]], dtype=np.float64)
 
-near_img = cv2.imread('./res19-near.jpg', cv2.IMREAD_COLOR)
-far_img = cv2.imread('./res20-far.jpg', cv2.IMREAD_COLOR)
+    B = pts2.reshape(6, 1).astype(np.float64)
+    # X = A^(-1) * B
+    X = np.linalg.inv(A) @ B
+    transform_matrix = np.zeros((3, 3), dtype=np.float64)
+    transform_matrix[2, 2] = 1
+    transform_matrix[0:2, :] = X.reshape(2, 3)
+    return transform_matrix
+## ------------------- MAIN ------------------------------ ##
 
-M1, N1, _ = near_img.shape
-M2, N2, _ = far_img.shape
+# always transform far image to the near image - 
+# far image is the bigger image and the near image is the smaller image
 
-print("Near image shape: {}".format(near_img.shape))
-print("Far image shape: {}".format(far_img.shape))
+img1 = cv2.imread('./pic2.jpg', cv2.IMREAD_COLOR)
+img2 = cv2.imread('./pic1.jpg', cv2.IMREAD_COLOR)
 
-M, N = M1, N1
+pts1 = np.array([[199, 202], [104, 201], [156, 317]])
+pts2 = np.array([[476, 377], [257, 372], [372, 720]])
 
 
-pts_near = np.array([[254, 124], [168, 129], [240, 544]])
-pts_far = np.array([[409, 220], [324, 224], [352, 641]])
+M1, N1, _ = img1.shape
+M2, N2, _ = img2.shape
 
-transform_matrix = cv2.getAffineTransform(pts_far.astype(np.float32), 
-                                          pts_near.astype(np.float32))
+print("Near image shape: {}".format(img1.shape))
+print("Far image shape: {}".format(img2.shape))
 
-far_img_changed = cv2.warpAffine(far_img, transform_matrix, (N, M))
+if M1 > M2 and N1 > N2:
+    M, N = M2, N2
+    far_img = img1
+    pts_far = pts1
+
+    near_img = img2
+    pts_near = pts2
+else:
+    M, N = M1, N1
+    far_img = img2
+    pts_far = pts2
+
+    near_img = img1
+    pts_near = pts1
+
+# transform_matrix = calAffineTran(pts_far, pts_near)
+# far_img_changed = utl.myWarpFunction(far_img, transform_matrix, (M, N))
+
+print(pts_far)
+print(pts_near)
+
+Matr = cv2.getAffineTransform(pts_far.astype(np.float32), pts_near.astype(np.float32))
+print(Matr)
+far_img_changed = cv2.warpAffine(far_img, Matr, (N, M))
+print(np.sum(far_img_changed))
+print(utl.showRange(far_img_changed))
 
 cv2.imwrite('res21-near.jpg', near_img)
 cv2.imwrite('res22-far.jpg', far_img_changed)
@@ -30,8 +75,8 @@ cv2.imwrite('res22-far.jpg', far_img_changed)
 near_img_fft = utl.calImgFFT(near_img)
 far_img_fft = utl.calImgFFT(far_img_changed)
 
-near_img_fft_abs = utl.scaleIntensities(np.log(np.abs(near_img_fft)), 'M')
-far_img_fft_abs = utl.scaleIntensities(np.log(np.abs(far_img_fft)), 'M')
+near_img_fft_abs = utl.scaleIntensities(np.log(1+np.abs(near_img_fft)), 'M')
+far_img_fft_abs = utl.scaleIntensities(np.log(1+np.abs(far_img_fft)), 'M')
 
 cv2.imwrite('res23-dft-near.jpg', near_img_fft_abs)
 cv2.imwrite('res24-dft-far.jpg', far_img_fft_abs)
