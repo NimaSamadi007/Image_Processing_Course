@@ -30,8 +30,8 @@ cv2.imwrite('res22-far.jpg', far_img_changed)
 near_img_fft = utl.calImgFFT(near_img)
 far_img_fft = utl.calImgFFT(far_img_changed)
 
-near_img_fft_abs = utl.scaleGrayIntensities(np.log(np.abs(near_img_fft)), 'M')
-far_img_fft_abs = utl.scaleGrayIntensities(np.log(np.abs(far_img_fft)), 'M')
+near_img_fft_abs = utl.scaleIntensities(np.log(np.abs(near_img_fft)), 'M')
+far_img_fft_abs = utl.scaleIntensities(np.log(np.abs(far_img_fft)), 'M')
 
 cv2.imwrite('res23-dft-near.jpg', near_img_fft_abs)
 cv2.imwrite('res24-dft-far.jpg', far_img_fft_abs)
@@ -55,8 +55,8 @@ highpass_filter = np.stack([highpass_filter, highpass_filter, highpass_filter], 
 far_img_filtered = far_img_fft * lowpass_filter.astype(far_img_fft.dtype)
 near_img_filtered = near_img_fft * highpass_filter.astype(near_img_fft.dtype)
 
-far_img_filtered_repr = utl.scaleGrayIntensities(np.log(1+np.abs(far_img_filtered)), 'Z')
-near_img_filtered_repr = utl.scaleGrayIntensities(np.log(1+np.abs(near_img_filtered)), 'Z')
+far_img_filtered_repr = utl.scaleIntensities(np.log(1+np.abs(far_img_filtered)), 'Z')
+near_img_filtered_repr = utl.scaleIntensities(np.log(1+np.abs(near_img_filtered)), 'Z')
 
 cv2.imwrite('res27-highpassed.jpg', near_img_filtered_repr)
 cv2.imwrite('res28-lowpassed.jpg', far_img_filtered_repr)
@@ -64,13 +64,13 @@ cv2.imwrite('res28-lowpassed.jpg', far_img_filtered_repr)
 alpha = 0.45
 hybrid_img_fft = alpha * far_img_filtered + (1-alpha) * near_img_filtered
 
-hybrid_img_fft_repr = utl.scaleGrayIntensities(np.log(1+np.abs(hybrid_img_fft)), 'Z')
+hybrid_img_fft_repr = utl.scaleIntensities(np.log(1+np.abs(hybrid_img_fft)), 'Z')
 
 cv2.imwrite('res29-hybrid.jpg', hybrid_img_fft_repr)
 
 hybrid_img = utl.calImgIFFT(hybrid_img_fft)
 
-hybrid_img = utl.scaleGrayIntensities(np.abs(hybrid_img), 'M')
+hybrid_img = utl.scaleIntensities(np.abs(hybrid_img), 'M')
 
 
 cv2.imwrite('final.jpg', hybrid_img)

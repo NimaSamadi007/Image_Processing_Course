@@ -18,14 +18,19 @@ def showRange(matrix):
                                                                 np.abs(np.amax(matrix)),
                                                                 matrix.dtype))
 
-def calGaussFilter(dsize, sigma):
-    # calculates gaussian kernel - size must be odd
+def calGaussFilter(dsize, sigma, normal=False):
+    # calculates gaussian kernel 
+    ## normal: normalizes filter
     M, N = dsize
     u_row = np.arange(N) - N // 2
     U_matrix = repeatRow(u_row, M)
     v_col = np.arange(M) - M // 2
     V_matrix = repeatCol(v_col, N)
-    return np.exp(-(U_matrix ** 2 + V_matrix ** 2)/(2*(sigma**2)))
+    filter = np.exp(-(U_matrix ** 2 + V_matrix ** 2)/(2*(sigma**2)))
+    if normal:
+        return filter / (np.sum(filter))
+    else:
+        return filter
 
 def showImg(img, res_factor, title='input image'):
     res = (int(img.shape[1]*res_factor), int(img.shape[0]*res_factor))
@@ -33,7 +38,7 @@ def showImg(img, res_factor, title='input image'):
     cv2.imshow(title, img_show)
     return
 
-def scaleGrayIntensities(img, mode='Z'):
+def scaleIntensities(img, mode='Z'):
     ## scale intensities to be shown as a picture
     ## modes:
     #   1) Z: scales negatives to zero (default)
