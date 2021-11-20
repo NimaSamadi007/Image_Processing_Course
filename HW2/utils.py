@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 
 # Utility functions:
-
 def repeatRow(row, num):
     row_format = row.reshape(1, row.shape[0])
     repeater = np.ones((num, 1), dtype=row.dtype)
@@ -32,10 +31,13 @@ def calGaussFilter(dsize, sigma, normal=False):
     else:
         return filter
 
-def showImg(img, res_factor, title='input image'):
+def showImg(img, res_factor, title='input image', wait_flag=True):
     res = (int(img.shape[1]*res_factor), int(img.shape[0]*res_factor))
     img_show = cv2.resize(img, res)
     cv2.imshow(title, img_show)
+    if wait_flag:
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
     return
 
 def scaleIntensities(img, mode='Z'):
@@ -65,3 +67,4 @@ def calImgIFFT(img_fft):
     for i in range(3):
         img[:, :, i] = np.fft.ifft2(np.fft.ifftshift(img_fft[:, :, i]))
     return img
+
