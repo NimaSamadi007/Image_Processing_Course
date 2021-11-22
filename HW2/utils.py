@@ -81,8 +81,10 @@ def myWarpFunction(img, trans_matrix, dsize):
         for j in range(N): 
             corr_pixel = inverse_M @ np.array([i, j, 1], dtype=np.float64).reshape(3, 1)
             corr_pixel = np.array([corr_pixel[0], corr_pixel[1]]) / corr_pixel[2]
-            assignPixels(img, warped_img, corr_pixel, i, j)
-    
+            if corr_pixel[0] + 1 >= 0 and corr_pixel[1] + 1 >= 0:
+                assignPixels(img, warped_img, corr_pixel, i, j)
+            else:
+                warped_img[i, j, :] = 0
     return warped_img
 
 def assignPixels(img, warped_img, corr_pixel, i, j):

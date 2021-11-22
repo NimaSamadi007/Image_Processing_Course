@@ -62,19 +62,19 @@ print(pts_far)
 print(pts_near)
 
 
+# Matr = cv2.getAffineTransform(pts_far.astype(np.float32), pts_near.astype(np.float32))
+# far_img_changed2 = cv2.warpAffine(far_img, Matr, (N, M))
+
 transform_matrix = calAffineTran(pts_far, pts_near)
-# convert to numpy format
+## convert to numpy format
 transform_matrix = utl.cv2numpy(transform_matrix)
 far_img_changed = utl.myWarpFunction(far_img, transform_matrix, (M, N))
 
-
-# Matr = cv2.getAffineTransform(pts_far.astype(np.float32), pts_near.astype(np.float32))
-# far_img_changed = cv2.warpAffine(far_img, Matr, (N, M))
-# print(np.sum(far_img_changed))
 # print(utl.showRange(far_img_changed))
 
 cv2.imwrite('res21-near.jpg', near_img)
 cv2.imwrite('res22-far.jpg', far_img_changed)
+
 
 near_img_fft = utl.calImgFFT(near_img)
 far_img_fft = utl.calImgFFT(far_img_changed)
