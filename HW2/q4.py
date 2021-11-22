@@ -29,13 +29,19 @@ def calAffineTran(pts1, pts2):
 # always transform far image to the near image - 
 # far image is the bigger image and the near image is the smaller image
 
-img1 = cv2.imread('./pic1.jpg', cv2.IMREAD_COLOR)
-img2 = cv2.imread('./pic2.jpg', cv2.IMREAD_COLOR)
+# img1 = cv2.imread('./images/res19-near.jpg', cv2.IMREAD_COLOR)
+# img2 = cv2.imread('./images/res20-far.jpg', cv2.IMREAD_COLOR)
+
+# # points are in opencv format
+# pts1 = np.array([[264, 172], [90, 172], [134, 98]])
+# pts2 = np.array([[405, 210], [101, 210], [177, 109]])
+
+img1 = cv2.imread('./res19-near.jpg', cv2.IMREAD_COLOR)
+img2 = cv2.imread('./res20-far.jpg', cv2.IMREAD_COLOR)
 
 # points are in opencv format
-pts1 = np.array([[264, 172], [90, 172], [134, 98]])
-pts2 = np.array([[405, 210], [101, 210], [177, 109]])
-
+pts1 = np.array([[499, 410], [107, 402], [205, 241]])
+pts2 = np.array([[843, 530], [307, 530], [447, 347]])
 
 M1, N1, _ = img1.shape
 M2, N2, _ = img2.shape
@@ -63,7 +69,7 @@ print(pts_near)
 
 
 # Matr = cv2.getAffineTransform(pts_far.astype(np.float32), pts_near.astype(np.float32))
-# far_img_changed2 = cv2.warpAffine(far_img, Matr, (N, M))
+# far_img_changed = cv2.warpAffine(far_img, Matr, (N, M))
 
 transform_matrix = calAffineTran(pts_far, pts_near)
 ## convert to numpy format
@@ -86,9 +92,9 @@ cv2.imwrite('res23-dft-near.jpg', near_img_fft_abs)
 cv2.imwrite('res24-dft-far.jpg', far_img_fft_abs)
 
 # low pass and high pass filters:
-s = 8
+s = 4
 lowpass_filter = utl.calGaussFilter((M, N), s)
-r = 50
+r = 20
 highpass_filter = 1 - utl.calGaussFilter((M, N), r)
 
 lowpass_filter_repr = (lowpass_filter * 255).astype(np.uint8)
@@ -110,7 +116,7 @@ near_img_filtered_repr = utl.scaleIntensities(np.log(1+np.abs(near_img_filtered)
 cv2.imwrite('res27-highpassed.jpg', near_img_filtered_repr)
 cv2.imwrite('res28-lowpassed.jpg', far_img_filtered_repr)
 
-alpha = 0.45
+alpha = 0.75
 hybrid_img_fft = alpha * far_img_filtered + (1-alpha) * near_img_filtered
 
 hybrid_img_fft_repr = utl.scaleIntensities(np.log(1+np.abs(hybrid_img_fft)), 'Z')
@@ -119,7 +125,9 @@ cv2.imwrite('res29-hybrid.jpg', hybrid_img_fft_repr)
 
 hybrid_img = utl.calImgIFFT(hybrid_img_fft)
 
-hybrid_img = utl.scaleIntensities(np.abs(hybrid_img), 'M')
+hybrid_img = utl.scaleIntensities(np.abs(hybrid_img))
 
 
-cv2.imwrite('final.jpg', hybrid_img)
+cv2.imwrite('res30-hybrid-near.jpg', hybrid_img)
+hybrid_img = cv2.resize(hybrid_img, None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+cv2.imwrite('res31-hybrid-far.jpg', hybrid_img)
