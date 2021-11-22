@@ -27,7 +27,13 @@ def calProperIndex(x, y, x_thr, y_thr, M, N):
 
 
 img = cv2.imread('Greek-ship.jpg', cv2.IMREAD_COLOR)
-patch = cv2.imread('patch.png', cv2.IMREAD_COLOR)
+patch = cv2.imread('patch2.png', cv2.IMREAD_COLOR)
+
+# patch_res = cv2.resize(patch, None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
+# cv2.imwrite("res-patch.png", patch_res)
+
+# utl.showImg(img, 0.2, 'original img', False)
+# utl.showImg(patch, 0.2, 'original patch')
 
 M1, N1, _ = img.shape
 M2, N2, _ = patch.shape
@@ -68,11 +74,11 @@ local_max = locations
 
 # print(local_max[])
 
-fig, axes = plt.subplots(3)
-axes[0].plot(local_max[0, :])
-axes[1].plot(local_max[1, :])
-axes[2].scatter(local_max[0, :], local_max[1, :])
-plt.show()
+# fig, axes = plt.subplots(3)
+# axes[0].plot(local_max[0, :])
+# axes[1].plot(local_max[1, :])
+# axes[2].scatter(local_max[0, :], local_max[1, :])
+# plt.show()
 
 pre_pt1 = (local_max[1, 0], local_max[0, 0])
 pre_pt2 = (local_max[1, 0]+patch.shape[1], local_max[0, 0]+patch.shape[0])
