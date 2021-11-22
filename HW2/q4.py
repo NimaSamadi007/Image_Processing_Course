@@ -5,7 +5,7 @@ import utils as utl
 
 ## ------------------- FUNCTIONS ------------------------- ##
 def calAffineTran(pts1, pts2):
-    ## Fits an affine transformation from pts1 to pts2
+    ## Fits an affine transformation from pts1 to pts2 in opencv format
     ## Equation is in the form of AX = B (same as course notations)
     if pts1.shape != (3, 2) or pts2.shape != (3, 2):
         raise ValueError("points shapes must be (3, 2)")
@@ -29,11 +29,12 @@ def calAffineTran(pts1, pts2):
 # always transform far image to the near image - 
 # far image is the bigger image and the near image is the smaller image
 
-img1 = cv2.imread('./pic2.jpg', cv2.IMREAD_COLOR)
-img2 = cv2.imread('./pic1.jpg', cv2.IMREAD_COLOR)
+img1 = cv2.imread('./pic1.jpg', cv2.IMREAD_COLOR)
+img2 = cv2.imread('./pic2.jpg', cv2.IMREAD_COLOR)
 
-pts1 = np.array([[199, 202], [104, 201], [156, 317]])
-pts2 = np.array([[476, 377], [257, 372], [372, 720]])
+# points are in opencv format
+pts1 = np.array([[264, 172], [90, 172], [134, 98]])
+pts2 = np.array([[405, 210], [101, 210], [177, 109]])
 
 
 M1, N1, _ = img1.shape
@@ -57,17 +58,20 @@ else:
     near_img = img1
     pts_near = pts1
 
-# transform_matrix = calAffineTran(pts_far, pts_near)
-# far_img_changed = utl.myWarpFunction(far_img, transform_matrix, (M, N))
-
 print(pts_far)
 print(pts_near)
 
-Matr = cv2.getAffineTransform(pts_far.astype(np.float32), pts_near.astype(np.float32))
-print(Matr)
-far_img_changed = cv2.warpAffine(far_img, Matr, (N, M))
-print(np.sum(far_img_changed))
-print(utl.showRange(far_img_changed))
+
+transform_matrix = calAffineTran(pts_far, pts_near)
+# convert to numpy format
+transform_matrix = utl.cv2numpy(transform_matrix)
+far_img_changed = utl.myWarpFunction(far_img, transform_matrix, (M, N))
+
+
+# Matr = cv2.getAffineTransform(pts_far.astype(np.float32), pts_near.astype(np.float32))
+# far_img_changed = cv2.warpAffine(far_img, Matr, (N, M))
+# print(np.sum(far_img_changed))
+# print(utl.showRange(far_img_changed))
 
 cv2.imwrite('res21-near.jpg', near_img)
 cv2.imwrite('res22-far.jpg', far_img_changed)
@@ -119,4 +123,3 @@ hybrid_img = utl.scaleIntensities(np.abs(hybrid_img), 'M')
 
 
 cv2.imwrite('final.jpg', hybrid_img)
-

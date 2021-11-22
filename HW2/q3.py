@@ -35,8 +35,10 @@ for i in range(NUM_OF_BOOKS):
     transformation_matrix = cv2.getPerspectiveTransform(books_pos[i].astype(np.float32), 
                                                         book_i_corr_pos.astype(np.float32))
 
+    # convert transformation from opencv format to numpy format
+    transformation_matrix = utl.cv2numpy(transformation_matrix)
     book_i_img = utl.myWarpFunction(books_img, transformation_matrix, (M, N))
-
+    
     cv2.imwrite("res{}.jpg".format(i+16), book_i_img)
 
     if i != (NUM_OF_BOOKS-1):

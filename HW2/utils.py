@@ -73,16 +73,14 @@ def calImgIFFT(img_fft):
 
 # warping function
 def myWarpFunction(img, trans_matrix, dsize):
-    # opencv format
-    # N: width, M: height of the image
+    # warps image using trans_matrix in numpy format format
     M, N = dsize
     warped_img = np.zeros((M, N, 3), dtype=np.uint8)
     inverse_M = np.linalg.inv(trans_matrix)
-    for i in range(M): # i: height (y in opencv, x in numpy)
-        for j in range(N): # j: width (x in opencv, y in numpy)
-            corr_pixel = inverse_M @ np.array([j, i, 1], dtype=np.float64).reshape(3, 1)
+    for i in range(M): 
+        for j in range(N): 
+            corr_pixel = inverse_M @ np.array([i, j, 1], dtype=np.float64).reshape(3, 1)
             corr_pixel = np.array([corr_pixel[0], corr_pixel[1]]) / corr_pixel[2]
-            # in numpy format, assign each pixel in warped image
             assignPixels(img, warped_img, corr_pixel, i, j)
     
     return warped_img
@@ -90,16 +88,41 @@ def myWarpFunction(img, trans_matrix, dsize):
 def assignPixels(img, warped_img, corr_pixel, i, j):
     # assigns warped image pixels for each channel from 
     # original image
-    # x, y are in opencv format
     M, N, _ = img.shape
-    y = int(corr_pixel[0])
-    x = int(corr_pixel[1])
-    a = corr_pixel[0] - y
-    b = corr_pixel[1] - x
+    x = int(corr_pixel[0])
+    y = int(corr_pixel[1])
+    a = corr_pixel[0] - x
+    b = corr_pixel[1] - y
     A = np.array([1-a, a], dtype=np.float64).reshape(1, 2)
-    B = np.array([1-b, b], dtype=np.float64).reshape(2, 1)
+    B = np.array([1-b, b], dtype=np.float64).reshape(2, 1)    
     for k in range(3):
-        img_mat = np.array([[img[x % M, y % N, k], img[(x+1) % M, y, k]], 
-                            [img[x % N, (y+1) % N, k], img[(x+1) % M, (y+1) % N, k]]])     
+        if x < M and y < N:
+            elem11 = img[x, y, k]
+        else:
+            elem11 = 0
+        if x < M and (y+1) < N:
+            elem12 = img[x, y+1, k]
+        else:
+            elem12 = 0
+        if (x+1) < M and y < N:
+            elem21 = img[x+1, y, k]
+        else:
+            elem21 = 0
+        if (x+1) < M and (y+1) < N:
+            elem22 = img[x+1, y+1, k]
+        else:
+            elem22 = 0
+        img_mat = np.array([[elem11, elem12], 
+                            [elem21, elem22]])     
         warped_img[i, j, k] = (A @ img_mat @ B).astype(np.uint8)
     return
+
+def cv2numpy(tran):
+    # converts transformation in opencv format
+    # to numpy format ( (x,y) in numpy is (y, x) in opencv)
+    swaped_tran = np.copy(tran)
+    # swap first and second col:
+    swaped_tran[:, [0, 1]] = swaped_tran[:, [1, 0]]
+    # swap first and second row:
+    swaped_tran[[0, 1], :] = swaped_tran[[1, 0], :]
+    return swaped_tran
