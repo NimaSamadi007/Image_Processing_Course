@@ -4,27 +4,30 @@ import cv2
 import utils as utl
 
 img = cv2.imread('./flowers.blur.png', cv2.IMREAD_COLOR)
-
+"""
 ## Part a)
-sigma = 2
-gauss_kernel = utl.calGaussFilter((6*sigma+1, 6*sigma+1), sigma, True)
+sigma = 1
+gauss_kernel = utl.calGaussFilter((3, 3), sigma, True)
 
 gauss_kernal_repr = cv2.resize(gauss_kernel, (500, 500))
 gauss_kernal_repr = utl.scaleIntensities(gauss_kernal_repr)
 cv2.imwrite('res01.jpg', gauss_kernal_repr)
 
 # smooth image
-img_smoothed = cv2.filter2D(img.astype(float), -1, gauss_kernel, borderType=cv2.BORDER_CONSTANT) 
-img_smoothed_repr = utl.scaleIntensities(img_smoothed)
+img_smoothed = cv2.filter2D(img.astype(np.float64), -1, gauss_kernel, borderType=cv2.BORDER_CONSTANT) 
+img_smoothed_repr = utl.scaleIntensities(img_smoothed, 'M')
 cv2.imwrite('res02.jpg', img_smoothed_repr)
 
-unsharp_mask = img.astype(float) - img_smoothed.astype(float) # unsharp mask
+unsharp_mask = img.astype(np.float64) - img_smoothed.astype(np.float64) # unsharp mask
+
+
 unsharp_mask_repr = utl.scaleIntensities(unsharp_mask, 'M')
 cv2.imwrite('res03.jpg', unsharp_mask_repr)
 
-alpha = 1.2
+alpha = 2
 img_sharpend = img.astype(float) + alpha * unsharp_mask.astype(float)
-img_sharpend = utl.scaleIntensities(img_sharpend)
+
+img_sharpend = utl.scaleIntensities(img_sharpend, 'M')
 cv2.imwrite('res04.jpg', img_sharpend)
 
 ## Part b)
@@ -33,18 +36,20 @@ gauss_kernal = utl.calGaussFilter((6*sigma+1, 6*sigma+1), sigma, True)
 laplacian_gauss = cv2.Laplacian(gauss_kernal, ddepth=-1, ksize=1, 
                                 borderType=cv2.BORDER_CONSTANT) # laplacian 3 * 3 kernel
 
-laplacian_gauss_repr = utl.scaleIntensities(laplacian_gauss)
+laplacian_gauss_repr = utl.scaleIntensities(laplacian_gauss, 'M')
 laplacian_gauss_repr = cv2.resize(laplacian_gauss_repr, (500, 500))
 cv2.imwrite('res05.jpg', laplacian_gauss_repr)
 
 unsharp_mask = cv2.filter2D(img.astype(float), -1, laplacian_gauss, borderType=cv2.BORDER_CONSTANT)
-unsharp_mask_repr = utl.scaleIntensities(unsharp_mask, 'Z')
+unsharp_mask_repr = utl.scaleIntensities(unsharp_mask, 'M')
 cv2.imwrite('res06.jpg', unsharp_mask.astype(np.uint8))
 
-k = 2
+k = 1.2
 img_sharpend = img.astype(float) - k * (unsharp_mask.astype(float))
-img_sharpend = utl.scaleIntensities(img_sharpend)
+img_sharpend = utl.scaleIntensities(img_sharpend, 'M')
 cv2.imwrite('res07.jpg', img_sharpend)
+
+"""
 
 ## Part c)
 img_fft = utl.calImgFFT(img)
@@ -78,8 +83,6 @@ img_filtered = utl.scaleIntensities(np.abs(img_filtered))
 cv2.imwrite('res11.jpg', img_filtered)
 
 ## Part d)
-
-
 img_fft = utl.calImgFFT(img)
 M, N, _ = img_fft.shape
 
