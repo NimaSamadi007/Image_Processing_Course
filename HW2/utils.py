@@ -73,7 +73,7 @@ def calImgIFFT(img_fft):
 
 # warping function
 def myWarpFunction(img, trans_matrix, dsize):
-    # warps image using trans_matrix in numpy format format
+    "warps image using trans_matrix in numpy format format"
     M, N = dsize
     warped_img = np.zeros((M, N, 3), dtype=np.uint8)
     inverse_M = np.linalg.inv(trans_matrix)
@@ -120,8 +120,7 @@ def assignPixels(img, warped_img, corr_pixel, i, j):
     return
 
 def cv2numpy(tran):
-    # converts transformation in opencv format
-    # to numpy format ( (x,y) in numpy is (y, x) in opencv)
+    "converts transformation in opencv format to numpy format ( (x,y) in numpy is (y, x) in opencv)"
     swaped_tran = np.copy(tran)
     # swap first and second col:
     swaped_tran[:, [0, 1]] = swaped_tran[:, [1, 0]]
