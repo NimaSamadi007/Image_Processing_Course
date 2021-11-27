@@ -29,12 +29,6 @@ def calAffineTran(pts1, pts2):
 # always transform far image to the near image - 
 # far image is the bigger image and the near image is the smaller image
 
-# img1 = cv2.imread('./images/res19-near.jpg', cv2.IMREAD_COLOR)
-# img2 = cv2.imread('./images/res20-far.jpg', cv2.IMREAD_COLOR)
-
-# # points are in opencv format
-# pts1 = np.array([[264, 172], [90, 172], [134, 98]])
-# pts2 = np.array([[405, 210], [101, 210], [177, 109]])
 
 img1 = cv2.imread('./res19-near.jpg', cv2.IMREAD_COLOR)
 img2 = cv2.imread('./res20-far.jpg', cv2.IMREAD_COLOR)
@@ -45,9 +39,6 @@ pts2 = np.array([[843, 530], [307, 530], [447, 347]])
 
 M1, N1, _ = img1.shape
 M2, N2, _ = img2.shape
-
-print("Near image shape: {}".format(img1.shape))
-print("Far image shape: {}".format(img2.shape))
 
 if M1 > M2 and N1 > N2:
     M, N = M2, N2
@@ -64,37 +55,28 @@ else:
     near_img = img1
     pts_near = pts1
 
-print(pts_far)
-print(pts_near)
-
-
-# Matr = cv2.getAffineTransform(pts_far.astype(np.float32), pts_near.astype(np.float32))
-# far_img_changed = cv2.warpAffine(far_img, Matr, (N, M))
 
 transform_matrix = calAffineTran(pts_far, pts_near)
 ## convert to numpy format
 transform_matrix = utl.cv2numpy(transform_matrix)
 far_img_changed = utl.myWarpFunction(far_img, transform_matrix, (M, N))
 
-# print(utl.showRange(far_img_changed))
-
 cv2.imwrite('res21-near.jpg', near_img)
 cv2.imwrite('res22-far.jpg', far_img_changed)
-
 
 near_img_fft = utl.calImgFFT(near_img)
 far_img_fft = utl.calImgFFT(far_img_changed)
 
-near_img_fft_abs = utl.scaleIntensities(np.log(1+np.abs(near_img_fft)), 'M')
-far_img_fft_abs = utl.scaleIntensities(np.log(1+np.abs(far_img_fft)), 'M')
+near_img_fft_abs = utl.scaleIntensities(np.log(np.abs(near_img_fft)), 'M')
+far_img_fft_abs = utl.scaleIntensities(np.log(np.abs(far_img_fft)), 'M')
 
 cv2.imwrite('res23-dft-near.jpg', near_img_fft_abs)
 cv2.imwrite('res24-dft-far.jpg', far_img_fft_abs)
 
 # low pass and high pass filters:
-s = 4
+s = 6
 lowpass_filter = utl.calGaussFilter((M, N), s)
-r = 20
+r = 80
 highpass_filter = 1 - utl.calGaussFilter((M, N), r)
 
 lowpass_filter_repr = (lowpass_filter * 255).astype(np.uint8)
@@ -104,30 +86,29 @@ cv2.imwrite('res25-highpass-{}.jpg'.format(r), highpass_filter_repr)
 cv2.imwrite('res26-lowpass-{}.jpg'.format(s), lowpass_filter_repr)
 
 # filter corresponding images
-lowpass_filter = np.stack([lowpass_filter, lowpass_filter, lowpass_filter], axis=2)
-highpass_filter = np.stack([highpass_filter, highpass_filter, highpass_filter], axis=2)
+lowpass_filter = np.stack([lowpass_filter for _ in range(3)], axis=2)
+highpass_filter = np.stack([highpass_filter for _ in range(3)], axis=2)
 
 far_img_filtered = far_img_fft * lowpass_filter.astype(far_img_fft.dtype)
 near_img_filtered = near_img_fft * highpass_filter.astype(near_img_fft.dtype)
 
-far_img_filtered_repr = utl.scaleIntensities(np.log(1+np.abs(far_img_filtered)), 'Z')
-near_img_filtered_repr = utl.scaleIntensities(np.log(1+np.abs(near_img_filtered)), 'Z')
+far_img_filtered_repr = utl.scaleIntensities(np.log(1+np.abs(far_img_filtered)), 'M')
+near_img_filtered_repr = utl.scaleIntensities(np.log(1+np.abs(near_img_filtered)), 'M')
 
 cv2.imwrite('res27-highpassed.jpg', near_img_filtered_repr)
 cv2.imwrite('res28-lowpassed.jpg', far_img_filtered_repr)
 
-alpha = 0.75
+alpha = 0.4
 hybrid_img_fft = alpha * far_img_filtered + (1-alpha) * near_img_filtered
 
-hybrid_img_fft_repr = utl.scaleIntensities(np.log(1+np.abs(hybrid_img_fft)), 'Z')
+hybrid_img_fft_repr = utl.scaleIntensities(np.log(np.abs(hybrid_img_fft)), 'M')
 
 cv2.imwrite('res29-hybrid.jpg', hybrid_img_fft_repr)
 
 hybrid_img = utl.calImgIFFT(hybrid_img_fft)
 
-hybrid_img = utl.scaleIntensities(np.abs(hybrid_img))
-
+hybrid_img = utl.scaleIntensities(np.abs(hybrid_img), 'M')
 
 cv2.imwrite('res30-hybrid-near.jpg', hybrid_img)
-hybrid_img = cv2.resize(hybrid_img, None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
-cv2.imwrite('res31-hybrid-far.jpg', hybrid_img)
+hybrid_img_small = cv2.resize(hybrid_img, None, fx=0.15, fy=0.15, interpolation=cv2.INTER_AREA)
+cv2.imwrite('res31-hybrid-far.jpg', hybrid_img_small)
