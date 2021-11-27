@@ -45,12 +45,17 @@ def scaleIntensities(img, mode='Z'):
     ## modes:
     #   1) Z: scales negatives to zero (default)
     #   2) M: adds -min(img) to image
+    #   3) C: cut intensities greater than 255 and less than 0
     img_scaled = np.copy(img) 
     if mode == 'Z':
         img_scaled[img < 0] = 0
     elif mode == 'M':
         if np.amin(img) < 0:
             img_scaled = img + (-np.amin(img))
+    elif mode == 'C':
+        img_scaled[img_scaled > 255] = 255
+        img_scaled[img_scaled < 0] = 0
+        return img_scaled.astype(np.uint8)
     else:
         raise ValueError("Unknown mode!")
     if np.amax(img_scaled):

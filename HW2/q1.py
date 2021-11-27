@@ -5,13 +5,13 @@ import utils as utl
 import time
 
 img = cv2.imread('./flowers.blur.png', cv2.IMREAD_COLOR)
-"""
+
 ## Part a)
-sigma = 1
-gauss_kernel = utl.calGaussFilter((3, 3), sigma, True)
+sigma = 2
+gauss_kernel = utl.calGaussFilter((6*sigma+1, 6*sigma+1), sigma, True)
 
 gauss_kernal_repr = cv2.resize(gauss_kernel, (500, 500))
-gauss_kernal_repr = utl.scaleIntensities(gauss_kernal_repr)
+gauss_kernal_repr = utl.scaleIntensities(gauss_kernal_repr, 'M')
 cv2.imwrite('res01.jpg', gauss_kernal_repr)
 
 # smooth image
@@ -21,14 +21,13 @@ cv2.imwrite('res02.jpg', img_smoothed_repr)
 
 unsharp_mask = img.astype(np.float64) - img_smoothed.astype(np.float64) # unsharp mask
 
-
 unsharp_mask_repr = utl.scaleIntensities(unsharp_mask, 'M')
 cv2.imwrite('res03.jpg', unsharp_mask_repr)
 
 alpha = 2
 img_sharpend = img.astype(float) + alpha * unsharp_mask.astype(float)
 
-img_sharpend = utl.scaleIntensities(img_sharpend, 'M')
+img_sharpend = utl.scaleIntensities(img_sharpend, 'C')
 cv2.imwrite('res04.jpg', img_sharpend)
 
 ## Part b)
@@ -45,11 +44,10 @@ unsharp_mask = cv2.filter2D(img.astype(float), -1, laplacian_gauss, borderType=c
 unsharp_mask_repr = utl.scaleIntensities(unsharp_mask, 'M')
 cv2.imwrite('res06.jpg', unsharp_mask.astype(np.uint8))
 
-k = 1.2
+k = 4.5
 img_sharpend = img.astype(float) - k * (unsharp_mask.astype(float))
-img_sharpend = utl.scaleIntensities(img_sharpend, 'M')
+img_sharpend = utl.scaleIntensities(img_sharpend, 'C')
 cv2.imwrite('res07.jpg', img_sharpend)
-
 
 
 ## Part c)
@@ -61,7 +59,7 @@ cv2.imwrite('res08.jpg', fft_amp_repr)
 # low pass filter in frequency domain
 M, N,_ = img_fft.shape
 
-sigma = 40
+sigma = 17
 lowpass_filter = utl.calGaussFilter((M, N), sigma, False)
 
 # high pass filter:
@@ -69,23 +67,23 @@ H = 1 - lowpass_filter
 H_repr = utl.scaleIntensities(np.abs(H))
 cv2.imwrite('res09.jpg', H_repr)
 
-k = 0.8
+k = 1
 filter = 1 + k * H
-filter_ext = np.stack([filter, filter, filter], axis=2)
+filter_ext = np.stack([filter for _ in range(3)], axis=2)
 img_filtered_freq = filter_ext * img_fft
 
-img_filtered_freq_repr = utl.scaleIntensities(np.log(np.abs(img_filtered_freq)))
+
+img_filtered_freq_repr = utl.scaleIntensities(np.log(np.abs(img_filtered_freq)), 'Z')
 
 cv2.imwrite('res10.jpg', img_filtered_freq_repr)
 
 img_filtered = utl.calImgIFFT(img_filtered_freq)
-img_filtered = utl.scaleIntensities(np.abs(img_filtered))
+img_filtered = utl.scaleIntensities(np.real(img_filtered), 'C')
 
 cv2.imwrite('res11.jpg', img_filtered)
-"""
-## Part d)
 
-time_origin = time.process_time()
+
+## Part d)
 img_fft = utl.calImgFFT(img)
 M, N, _ = img_fft.shape
 
@@ -96,25 +94,19 @@ v_matrix = utl.repeatRow(v_row, M)
 u_matrix = utl.repeatCol(u_col, N)
 
 lap_mat = 4 * (np.pi ** 2) * (v_matrix ** 2 + u_matrix ** 2)
-lap_mat_ext = np.stack([lap_mat, lap_mat, lap_mat], axis=2).astype(img_fft.dtype)
+lap_mat_ext = np.stack([lap_mat for _ in range(3)], axis=2).astype(img_fft.dtype)
 int_mat = lap_mat_ext * img_fft
 int_mat_repr = np.copy(int_mat)
 
-int_mat_repr = utl.scaleIntensities(np.real(int_mat), 'M')
-# cv2.imwrite('res12.jpg', int_mat_repr.astype(np.uint8))
+int_mat_repr = utl.scaleIntensities(np.abs(int_mat), 'M')
+cv2.imwrite('res12.jpg', int_mat_repr.astype(np.uint8))
 
-mask_img = np.real(utl.calImgIFFT(int_mat))
-mask_img[mask_img > 255] = 255
-mask_img[mask_img < 0] = 0
-# mask_img_repr = utl.scaleIntensities(np.real(mask_img), 'M')
-# print(mask_img_repr[0, 0])
-# cv2.imwrite('res13.jpg', mask_img.astype(np.uint8))
+mask_img = utl.calImgIFFT(int_mat)
+mask_img_repr = utl.scaleIntensities(np.real(mask_img), 'C')
+cv2.imwrite('res13.jpg', mask_img_repr.astype(np.uint8))
 
-# k = 8*10**(-7)
-k = 3 * 10 **(-6)
+k = 5 * 10 **(-6)
 sharpened_freq = img_fft + k * int_mat
 sharpened_img = utl.calImgIFFT(sharpened_freq)
-# sharpened_img = utl.scaleIntensities(np.abs(sharpened_img), 'M')
-# cv2.imwrite('res14.jpg', np.int64(np.real(sharpened_img)))
-time_length = time.process_time() - time_origin
-print(time_length)
+sharpened_img = utl.scaleIntensities(np.real(sharpened_img), 'C')
+cv2.imwrite('res14.jpg', sharpened_img)
