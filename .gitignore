@@ -4,3 +4,9 @@ HW2/*.jpg
 HW2/images
 HW2/*.png
 HW2/Report/*
+!HW2/res14.jpg
+!HW2/res30-hybrid-near.jpg
+!HW2/res31-hybrid-far.jpg
+!HW2/res15.jpg
+!HW2/res19-near.jpg
+!HW2/res20-far.jpg
