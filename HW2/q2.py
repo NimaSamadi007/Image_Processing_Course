@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import utils as utl
-import time
 
 ## ------------------- FUNCTIONS ----------------------- ##
 def myMatchTempl(img, patch):

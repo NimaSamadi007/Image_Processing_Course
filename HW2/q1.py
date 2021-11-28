@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import utils as utl
-import time
 
 img = cv2.imread('./flowers.blur.png', cv2.IMREAD_COLOR)
 

@@ -1,4 +1,3 @@
-from typing import final
 import numpy as np
 import cv2
 import utils as utl
