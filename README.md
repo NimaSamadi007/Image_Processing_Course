@@ -43,7 +43,7 @@ And three extracted books are:
 | ------------- | ------------- | --------------------- |
 
 ### Q4, Hybrid images:
-Hybrid images are kind of delusional. From near, you can see an image. As you go back and get away from the image, it seems you are observing another image. It happens as we interpret details when we are close enough to the image while from distance we can only see the overall shape. The details are high frequent component in image and the overall shape is composed by low frequency components. So, I used it to generate hybrid images. You can find the article from [Here](https://www.loc.gov/pictures/collection/prok/ "Hybrid images article"). I choosed these images:
+Hybrid images are kind of delusional. From near, you can see an image. As you go back and get away from the image, it seems you are observing another image. It happens as we interpret details when we are close enough to the image while from distance we can only see the overall shape. The details are high frequent component in image and the overall shape is composed by low frequency components. So, I used it to generate hybrid images. You can find the article from [Here](https://stanford.edu/class/ee367/reading/OlivaTorralb_Hybrid_Siggraph06.pdf "Hybrid images article"). I choosed these images:
 
 | ![](./HW2/res19-near.jpg "near img")  | ![](./HW2/res20-far.jpg "far img") |
 | ------------- | ------------- |
