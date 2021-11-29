@@ -4,21 +4,44 @@ Image Processing Course Assignments
 
 ## HW1
 ### Q1 and Q2
-These questions are about enhancing two dark photo's qualities
+These questions are about enhancing two dark photo's qualities. The origianl images are quite dark and are not pleasent for human's eyes. So, I enchanced them using gamma transformation, contrast stretching thecniques. These are origianl images:
+
+| ![](./HW1/Enhance1.JPG "original img 1")  | ![](./HW1/Enhance2.jpg "original img 2") |
+| ------------- | ------------- |
+
+And the enhanced images are:
+
+| ![](./HW1/res01.jpg "enhanced img 1")  | ![](./HW1/res02.jpg "enhanced img 2") |
+| ------------- | ------------- |
 
 ### Q3
-In Q3 I wrote a code to convert [Prokudin-Gorskii](https://www.loc.gov/pictures/collection/prok/ "Prokudin-Gorskii images") black and white images to colory jpg images. The Prokudin-Gorskii' images are in .tif format with separated blue, red, and green channels. q3.py can convert them properly.
+In Q3 I wrote a code to convert [Prokudin-Gorskii](https://www.loc.gov/pictures/collection/prok/ "Prokudin-Gorskii images") black and white images to colory jpg images. The Prokudin-Gorskii' images are in .tif format with separated blue, red, and green channels. q3.py can convert them properly. I've choose Amir, Mosque and Train images to test program. These program converts a 16 bit image to 8 bit jpg colory image. I'v used gaussian pyramid to improve speed while preserving the accuracy. After finding best matches for each channel, we should clip each side with a proper value (since the sides of the original images are in a bad shape). This procedure is done automatically. 
+
+The results are as below:
+| ![](./HW1/res03-Amir.jpg "amir image")  | ![](./HW1/res03-Mosque.jpg "mosque image") | ![](./HW1/res03-Train.jpg "train image") |
+| ------------- | ------------- | ------------- |
+
 
 ### Q4
-A simple program to change an image's color and blur it
+This program changes the flowers color to pink and blures the background:
+
+| ![](./HW1/Flowers.jpg "flowers img")  | ![](./HW1/res06.jpg "color changed") |
+| ------------- | ------------- |
 
 ### Q5
-Filtering an image by using OpenCV, double for implementation, and matrix addition method.
+Filtering an image by using OpenCV filter2D function, using naive double-for-loop implementation, and matrix addition method (which is faster). The time for each method is written under each image:
+
+| Opencv filter2D method | Double-for Method | Matrix Addition Method |
+| ------------- | ------------- | ------------- |
+| ![](./HW1/res07.jpg "opencv")  | ![](./HW1/res08.jpg "naive approach") | ![](./HW1/res09.jpg "Matrix addition") |
+| ‫‪0.01636419900000008‬‬s | ‫‪137.183767327‬‬s | ‫‪0.2271269970000276‬‬s |
 
 ### Q6
 Histogram specification code to enhance an image's quality
 
-___
+| ![](./HW1/Dark.jpg "original dark image")  | ![](./HW1/Pink.jpg "specific image") | ![](./HW1/res11.jpg "histogram specified image") | 
+| ------------- | ------------- | ------------- |
+
 ## HW2
 
 ### Q1, Image sharpening techniques:
