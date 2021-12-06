@@ -63,14 +63,15 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
                   x_s, x_f, y_s, y_f, x_thr, y_thr, rand_sel):
     "updates texture at each step"
     
-    # we need patch finding for y axis 
+    # patch finding for y axis 
     if y_s and y_f:
         patch_y = syn_tex[x_s:x_s+M_p, y_s:y_f, :]
         matching_result_y = cv2.matchTemplate(tex, patch_y, cv2.TM_CCOEFF)
         # clip matching result to ensure size consistency
         matching_result_y = matching_result_y[:, :-(N_p-y_thr)]
 
-        matching_indices = np.unravel_index(np.argsort(matching_result_y, axis=None)[-rand_sel:], matching_result_y.shape)
+        matching_indices = np.unravel_index(np.argsort(matching_result_y, axis=None)[-rand_sel:], 
+                                            matching_result_y.shape)
         random_index = np.random.randint(low=0, high=rand_sel)
         matching_indices = np.array([matching_indices[0][random_index], matching_indices[1][random_index]])
 
@@ -86,10 +87,37 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
             part2 = found_patch_y[k, path_y[k, 0]:y_thr, :]
             syn_tex[k, y_s:y_f] = np.concatenate([part1, part2], axis=0)
         if y_f + N_p - y_thr > N_i:
-            syn_tex[x_s:x_s+M_p, y_end:, :] = found_patch_y[:, y_thr:y_thr+N_i-y_end, :]  
+            syn_tex[x_s:x_s+M_p, y_f:, :] = found_patch_y[:, y_thr:y_thr+N_i-y_f, :]  
         else:
-            syn_tex[x_s:x_s+M_p, y_end:y_end+N_p-y_thr, :] = found_patch_y[:, y_thr:, :]
-    
+            syn_tex[x_s:x_s+M_p, y_f:y_f+N_p-y_thr, :] = found_patch_y[:, y_thr:, :]
+    # patch finding for x axis
+    if x_s and x_f:
+        patch_x = syn_tex[x_s:x_f, y_s:y_s+N_p, :]
+        matching_result_x = cv2.matchTemplate(tex, patch_x, cv2.TM_CCOEFF)
+        matching_result_x = matching_result_x[:-(M_p-x_thr), :]
+
+        matching_indices = np.unravel_index(np.argsort(matching_result_x, axis=None)[-rand_sel:], 
+                                            matching_result_x.shape)
+        random_index = np.random.randint(low=0, high=rand_sel)
+        matching_indices = np.array([matching_indices[0][random_index], matching_indices[1][random_index]])
+        
+        found_patch_x = tex[matching_indices[0]:matching_indices[0]+M_p, matching_indices[1]:matching_indices[1]+N_p]
+        ssd_result_x = (patch_x.astype(np.float64) - found_patch_x[0:x_thr, :].astype(np.float64))**2 
+        ssd_result_x = np.sum(ssd_result_x, axis=2)
+
+        path_x = findMinCut(ssd_result_x, mode="COL")
+
+        for k in range(N_p):
+            part1 = syn_tex[x_s : x_s+path_x[0, k], k, :]
+            part2 = found_patch_x[path_x[0, k]:x_thr, k, :]
+            syn_tex[x_s:x_f, k] = np.concatenate([part1, part2], axis=0)
+        if x_f + M_p - x_thr > M_i:  
+            syn_tex[x_f:, y_s:y_s+N_p, :] = found_patch_x[x_thr:x_thr+M_i-x_f, :, :]  
+        else:
+            syn_tex[x_f:x_f+M_p-x_thr, y_s:y_s+N_p, :] = found_patch_x[x_thr:, :, :]
+            
+
+
 
 #/ ------------------- MAIN --------------- /#
 
@@ -136,6 +164,9 @@ for i in range((M_i - M_p) // (M_p - x_thr) + 1):
         elif i != 0 and j == 0:
             y_end = 0
             y_start = 0
+            updateTexture(syn_texture, texture, M_p, N_p,
+                          M_i, N_i, x_start, x_end, y_start, y_end,
+                          x_thr, y_thr, random_select)
         # L shape tiles:
         else:
             pass
