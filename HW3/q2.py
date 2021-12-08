@@ -158,82 +158,47 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
         # print(mat_path_y[:x_thr, :y_thr])
 
         # mat_final showes boundries of patches
-        mat_final = mat_path_x | mat_path_y
         tmp_mat = mat_path_x[0:x_thr, 0:y_thr] & mat_path_y[0:x_thr, 0:y_thr]
         common_points = np.nonzero(tmp_mat == 1)
         # print(common_points[0].shape)
         if common_points[0].shape[0]:
             common_point = (common_points[0][0], common_points[1][0])
-            print(common_point)
-            print(mat_final[:x_thr, :y_thr])
-            mat_final = removeExtraPathes(mat_final, common_point, x_thr, y_thr)
-            # mat_final[common_point[0], common_point[1]] = -1
+            # print(common_point)
+            mat_path_x[:, 0:common_point[1]] = 0
+            mat_path_y[0:common_point[0], :] = 0   
 
-        print("-----------------")
-        print(mat_final[:x_thr, :y_thr])
+        mat_final = mat_path_x | mat_path_y
+        
+        # print("-----------------")
+        # print(mat_final[:x_thr, :y_thr])
 
         # traverse for each row
         for i in range(M_p):
+            flag = False
             for j in range(N_p):
                 # we have reached the boundry
                 if mat_final[i, j] == 1:
+                    flag = True
                     syn_tex[x_s+i, y_s:y_s+j] = patch[i, 0:j]
                     break
-        
+            if not flag:
+                # no boundry is found:
+                syn_tex[x_s+i, y_s:y_s+N_p] = patch[i, :]
+
         for j in range(N_p):
+            flag = False    
             for i in range(M_p):
                 if mat_final[i, j] == 1:
+                    flag = True
                     syn_tex[x_s:x_s+i, y_s+j] = patch[0:i, j]
                     break
-
-def removeExtraPathes(mat, comm_point, M, N):
-    "removes extra pathes started from comm_point to left and top"
-    x_finished = False
-    i, j = comm_point
-    while not x_finished:
-        if j == 0:
-            x_finished = True
-        else:
-            if i == 0:
-                start_index = 0
-                end_index = 2
-            elif i == M:
-                start_index = -1
-                end_index = 1
-            else:
-                start_index = -1
-                end_index = 2
-            for t in range(start_index, end_index):
-                if mat[i+t, j-1]:
-                    mat[i+t, j-1] = 0
-                    j -= 1
-                    i += t
-    
-    y_finished = False
-    i, j = comm_point
-    while not y_finished:
-        if i == 0:
-            y_finished = True
-        else:
-            if j == 0:
-                start_index = 0
-                end_index = 2
-            elif j == N:
-                start_index = -1
-                end_index = 1
-            else:
-                start_index = -1
-                end_index = 2
-            for t in range(start_index, end_index):
-                if mat[i-1, j+t]:
-                    mat[i-1, j+t] = 0
-                    i -= 1
-                    j += t
-    return mat
+            if not flag:
+                syn_tex[x_s:x_s+M_p, y_s+j] = patch[:, j]
+        
 
 #/ ------------------- MAIN --------------- /#
 
-texture = cv2.imread('./texture01.jpg', cv2.IMREAD_COLOR)
+texture = cv2.imread('./texture03.jpg', cv2.IMREAD_COLOR)
 
 # PARAMETERS:
 
@@ -245,7 +210,7 @@ syn_texture = np.zeros((M_i, N_i, 3), dtype=np.uint8)
 # patch size
 M_p, N_p = 100, 100
 
-random_select = 10
+random_select = 15
 y_thr = 25
 x_thr = 25
 
@@ -281,11 +246,11 @@ for i in range((M_i - M_p) // (M_p - x_thr) + 1):
                           x_thr, y_thr, random_select)
         # L shape tiles:
         else:
-            if (i == 1 and j == 1):
-                updateTexture(syn_texture, texture, M_p, N_p,
+            # if (i == 1 and j == 1):
+            updateTexture(syn_texture, texture, M_p, N_p,
                           M_i, N_i, x_start, x_end, y_start, y_end,
                           x_thr, y_thr, random_select)
             
 
-cv2.imwrite('test1_texture.jpg', syn_texture)
+cv2.imwrite('test3_texture.jpg', syn_texture)
 # utl.showImg(syn_texture, 1, 'syn te')
