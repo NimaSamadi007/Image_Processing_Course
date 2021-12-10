@@ -5,7 +5,6 @@ import utils as utl
 #/ ------------------------- FUNCTIONS -------------------- /#
 def calAngleLenMat(M, N):
     "calculates angle-length matrix of M * M shape"
-    
     angle_step = 2 * np.pi / (N-1)
     angle_row = np.arange(-np.pi, np.pi+angle_step, angle_step)
     angle_mat = utl.repeatRow(angle_row, M)
@@ -23,7 +22,6 @@ def updateVotingMat(voting_mat, len_angle_space, x, y):
 
 def houghTran(img_edges, step_shape):
     "Findes Hough transform of a specified image and returns voting matrix and len-angle space representation"
-
     M, N = img_edges.shape
     voting_mat = np.zeros((step_shape[0], step_shape[1]), dtype=np.int64)
     len_angle_space = calAngleLenMat(step_shape[0], step_shape[1])
@@ -64,17 +62,17 @@ def convertToXY(rho, theta, M, N):
 #/ ------------------------- MAIN ------------------------ /#
 
 img1 = cv2.imread('./im01.jpg', cv2.IMREAD_COLOR)
-img2 = cv2.imread('./im02.jpg', cv2.IMREAD_COLOR)
+# img2 = cv2.imread('./im02.jpg', cv2.IMREAD_COLOR)
 
 img1_edges = cv2.Canny(img1, 100, 250)
-img2_edges = cv2.Canny(img2, 100, 250)
+# img2_edges = cv2.Canny(img2, 100, 250)
 
 # threshold for converting edges to binary
 thr = 10
 img1_edges[img1_edges > thr] = 255
 img1_edges[img1_edges <= thr] = 0
-img2_edges[img2_edges > thr] = 255
-img2_edges[img2_edges <= thr] = 0
+# img2_edges[img2_edges > thr] = 255
+# img2_edges[img2_edges <= thr] = 0
 
 M1, N1 = img1_edges.shape
 
@@ -90,7 +88,6 @@ for i in range(5):
             pt1, pt2 = convertToXY(angle_line_spc[i, j, 0], angle_line_spc[i, j, 1], M1, N1)
             print(pt1[0], pt1[1])
             print(pt2[0], pt2[1])
-            cv2.line(img1, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 5)
+            # cv2.line(img1, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 5)
 
-# cv2.line(img1, (0, 750), (500, 0), (0, 0, 255), 10)
 utl.showImg(img1, 0.5, 'found lines')
