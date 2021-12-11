@@ -1,68 +1,21 @@
 import numpy as np
 import cv2 
 import utils as utl
-import matplotlib.pyplot as plt
-#/ ------------------- FUNCTIONS --------------- /#
-def findPath(path_mat, arr, M, N):
-    path = []
-    current_ind = np.argmin(path_mat[:, -1])
-    path.append(current_ind)
-    for j in range(N-1, 0, -1):
-        val = path_mat[current_ind, j] - arr[current_ind, j]
-        if current_ind == 0:
-            possible_indices = np.where(path_mat[0:current_ind+2, j-1] == val)[0]
-            current_ind = possible_indices[0]    
-        elif current_ind == M-1:
-            possible_indices = np.where(path_mat[current_ind-1:current_ind+1, j-1] == val)[0]
-            current_ind += (possible_indices[0] - 1)    
-        else:
-            possible_indices = np.where(path_mat[current_ind-1:current_ind+2, j-1] == val)[0]
-            current_ind += (possible_indices[0] - 1)
-        # print(current_ind)
-        path.append(current_ind)
-    
-    return np.flip(path)
 
-def findMinCut(matrix, mode="COL"):
-    "finds mincut in cols or rows of matrix"
-    "COL mode: finds cut in columns of matrix (row min cut)"
-    "ROW mode: finds cut in rows of matrix (coloumn min cut)"
-    "returns path and path matrix in output"
-    if mode == "COL":
-        arr = np.copy(matrix)
-    elif mode == "ROW":
-        arr = np.copy(matrix.T)
-    else:
-        raise ValueError("Unknown mode inserted!")
-
-    M, N = arr.shape
-    path_mat = np.zeros((M, N), dtype=np.float64)
-    path_mat[:, 0] = arr[:, 0]
-
-    for j in range(1, N):
-        for i in range(M):
-            if i == 0:
-                path_mat[i, j] = arr[i, j] + np.amin(path_mat[i:i+2, j-1])
-            elif i == M-1:
-                path_mat[i, j] = arr[i, j] + np.amin(path_mat[i-1:i+1, j-1])
-            else:
-                path_mat[i, j] = arr[i, j] + np.amin(path_mat[i-1:i+2, j-1])
-
-    # find cut path by back substitution:
-    path = findPath(path_mat, arr, M, N)
-    if mode == "COL":
-        return path.reshape(1, path.shape[0])
-    else:
-        path = path.T
-        path_mat = path_mat.T
-        return path.reshape(path.shape[0], 1)
-
+#----------------------- FUNCTIONS ------------------------------- #
 
 def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i, 
                   x_s, x_f, y_s, y_f, x_thr, y_thr, rand_sel):
-
     "updates texture at each step"
-    
+    "syn_text: synthesized texture to be updated at each step"
+    "tex: original texture"
+    "(M_p, N_p): patches shape"
+    "M_i, N_i, synthesizing image size"
+    "x_s & x_f: start and final x indices"
+    "y_s & y_f: start and final y indices"
+    "x_thr & y_thr: x and y threshold used in extracting patches"
+    "rand_sel: number of random choices for choosing patch at each step"
+
     # only row synthesizing
     if y_s and y_f and (not x_s) and (not x_f) :
         patch_y = syn_tex[x_s:x_s+M_p, y_s:y_f, :]
@@ -81,7 +34,7 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
         ssd_result_y = (patch_y.astype(np.float64) - found_patch_y[:, 0:y_thr, :].astype(np.float64))**2 
         ssd_result_y = np.sum(ssd_result_y, axis=2)
 
-        path_y = findMinCut(ssd_result_y, mode="ROW")
+        path_y = utl.findMinCut(ssd_result_y, mode="ROW")
         
         for k in range(M_p):
             part1 = syn_tex[k, y_s : y_s+path_y[k, 0], :]
@@ -108,7 +61,7 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
         ssd_result_x = (patch_x.astype(np.float64) - found_patch_x[0:x_thr, :, :].astype(np.float64))**2 
         ssd_result_x = np.sum(ssd_result_x, axis=2)
 
-        path_x = findMinCut(ssd_result_x, mode="COL")
+        path_x = utl.findMinCut(ssd_result_x, mode="COL")
 
         for k in range(N_p):
             part1 = syn_tex[x_s : x_s+path_x[0, k], k, :]
@@ -142,8 +95,8 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
         ssd_result_y = (patch[:, 0:y_thr, :].astype(np.float64) - found_patch[:, 0:y_thr, :].astype(np.float64))**2
         ssd_result_y = np.sum(ssd_result_y, axis=2)
 
-        path_x = findMinCut(ssd_result_x, mode="COL")
-        path_y = findMinCut(ssd_result_y, mode="ROW")
+        path_x = utl.findMinCut(ssd_result_x, mode="COL")
+        path_y = utl.findMinCut(ssd_result_y, mode="ROW")
 
         # replace found patch (next it will be corrected)
         syn_tex[x_s:x_s+M_p, y_s:y_s+N_p, :] = found_patch
@@ -207,8 +160,6 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
                     break
             if not flag:
                 syn_tex[x_s:x_s+M_p, y_s+j] = patch[:, j]
-        
-        
 
 #/ ------------------- MAIN --------------- /#
 
