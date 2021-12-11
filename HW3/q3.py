@@ -27,7 +27,7 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i, x_left, x_right, y_top, y_bo
     # print(patch.shape)
     # print(matching_result.shape)
     
-    matching_result[x_left-2*x_thr:x_right+2*x_thr, y_top-2*y_thr:y_bottom+2*y_thr] = np.inf
+    matching_result[x_left-M_p:x_right+M_p, y_top-N_p:y_bottom+N_p] = np.inf
     
     matching_indices = np.unravel_index(np.argsort(matching_result, axis=None)[0:rand_sel], 
                                                     matching_result.shape)
@@ -35,7 +35,7 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i, x_left, x_right, y_top, y_bo
     
     random_index = np.random.randint(low=0, high=rand_sel)
     matching_indices = np.array([matching_indices[0][random_index], matching_indices[1][random_index]])
-    print(matching_indices)
+    #print(matching_indices)
 
     found_patch = tex[matching_indices[0]:matching_indices[0]+M_p, 
                         matching_indices[1]:matching_indices[1]+N_p]
@@ -127,7 +127,7 @@ y_thr = 25
 # patch size 
 M_p, N_p = 100, 100
 
-random_select = 1
+random_select = 10
 
 img_hole = img[x_left-M_p:x_right+M_p, y_top-N_p: y_bottom+N_p, :]
 
@@ -135,17 +135,22 @@ M_i, N_i, _ = img_hole.shape
 #########################################################
 
 # just senthesizing L shape patches
-for i in range(1, (M_i - M_p) // (M_p - x_thr) + 1):
-    for j in range(1, (N_i - N_p) // (N_p - y_thr) + 1):
+for i in range(1, (M_i - M_p) // (M_p - x_thr)+ 1):
+    for j in range(1, (N_i - N_p) // (N_p - y_thr)+ 1):
         x_end = i*M_p-(i-1)*(x_thr)
         x_start = x_end - x_thr
         y_end = j*N_p-(j-1)*(y_thr)
         y_start = y_end - y_thr
-
+        
+        print(x_start, x_end)
+        print(y_start, y_end)
+        print("------------------")
         # if i == 1 and j == 1:
         updateTexture(img_hole, img, M_p, N_p,
                         M_i, N_i, x_left, x_right, y_top, y_bottom, 
                         x_start, x_end, y_start, y_end,
                         x_thr, y_thr, random_select)
 
-utl.showImg(img_hole, 1)
+img[x_left-M_p:x_right+M_p, y_top-N_p: y_bottom+N_p, :] = img_hole
+#utl.showImg(img_hole, 1)
+cv2.imwrite('test3.jpg', img)
