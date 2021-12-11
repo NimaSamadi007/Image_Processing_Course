@@ -3,91 +3,121 @@ import cv2
 import utils as utl
 
 #/ ------------------------- FUNCTIONS -------------------- /#
-def calAngleLenMat(M, N):
-    "calculates angle-length matrix of M * M shape"
-    angle_step = 2 * np.pi / (N-1)
-    angle_row = np.arange(-np.pi, np.pi+angle_step, angle_step)
-    angle_mat = utl.repeatRow(angle_row, M)
+def calLenAngleMat(len_level, angle_level):
+    "calculates angle-length matrix of given shape (len_level * angle_level)"
+    "First parameter is len and second parameter is angle"
 
-    len_step = (2 * np.sqrt(2) / (M-1))
-    len_col = np.arange(-np.sqrt(2), np.sqrt(2)+len_step, len_step)
-    len_mat = utl.repeatCol(len_col, N)
+    angle_row = np.linspace(start=-np.pi, stop=np.pi, num=angle_level, endpoint=True, dtype=np.float64)
+    angle_mat = utl.repeatRow(angle_row, len_level)
+    
+    len_col = np.linspace(start=-2**(0.5), stop=2**(0.5), num=len_level, endpoint=True, dtype=np.float64)
+    len_mat = utl.repeatCol(len_col, angle_level)
 
     return np.stack([len_mat, angle_mat], axis=2)
 
-def updateVotingMat(voting_mat, len_angle_space, x, y):
+def updateVotingMat(voting_mat, len_angle_space, x, y, thr):
     "update voting matrix for each (x, y) pair and for all (rho, theta) pairs"
-    condition_matrix = np.abs((x * np.cos(len_angle_space[:, :, 1]) + y * np.sin(len_angle_space[:, :, 1]) - len_angle_space[:, :, 0]))
-    voting_mat[condition_matrix < 1e-6] += 1
+    condition_matrix = np.abs((x * np.cos(len_angle_space[:, :, 1]) + 
+                               y * np.sin(len_angle_space[:, :, 1]) - 
+                               len_angle_space[:, :, 0]))
+    voting_mat[condition_matrix < thr] += 1
 
-def houghTran(img_edges, step_shape):
+def houghTran(img_edges, len_level, angle_level, thr):
     "Findes Hough transform of a specified image and returns voting matrix and len-angle space representation"
     M, N = img_edges.shape
-    voting_mat = np.zeros((step_shape[0], step_shape[1]), dtype=np.int64)
-    len_angle_space = calAngleLenMat(step_shape[0], step_shape[1])
+    voting_mat = np.zeros((len_level, angle_level), dtype=np.int64)
+    len_angle_space = calLenAngleMat(len_level, angle_level)
 
     # check every edge candidate for a line
     for i in range(M):
         # print("In stage x={}".format(i))
         for j in range(N):
             if img_edges[i, j] == 255:
-                x = (i - M//2) / (M//2)
-                y = (j - N//2) / (N//2)
-                updateVotingMat(voting_mat, len_angle_space, x, y)
+                x = (j - N//2) / (N//2)
+                y = -(i - M//2) / (M//2)
+                # swap y and x since matrix and cartesian indices are different
+                updateVotingMat(voting_mat, len_angle_space, x, y, thr)
 
     return voting_mat, len_angle_space
 
 def convertToXY(rho, theta, M, N):
-    sin_theta = np.sin(theta)
     cos_theta = np.cos(theta)
-    if np.abs(sin_theta) < 1e-9:
-        sin_theta = 1e-9
-    if np.abs(cos_theta) < 1e-9:
-        cos_theta = 1e-9
+    sin_theta = np.sin(theta)
     
-    pt1 = np.array([0, rho / sin_theta])
-    pt2 = np.array([rho/cos_theta, 0])
+    # determine quarter
+    pt1 = np.zeros(2, dtype=np.float64)
+    pt2 = np.zeros(2, dtype=np.float64)
     
-    pt1 *= np.array([M//2, N//2])
+    # extreme cases:    
+    if np.abs(theta) <= 10 ** (-9) or np.abs(theta - np.pi) <= 10 ** (-9) or np.abs(theta + np.pi) <= 10 ** (-9):
+        # vertical lines
+        pt1 = np.array([rho, 1])
+        pt2 = np.array([rho, -1])
+        
+    elif np.abs(theta - np.pi/2) <= 10 ** (-9) or np.abs(theta + np.pi/2) <= 10 ** (-9):
+        # horizontal lines
+        pt1 = np.array([1, rho])
+        pt2 = np.array([-1, rho])
+
+    elif theta > (-np.pi) and theta < (-np.pi / 2):
+        # third quarter
+        pt1 = np.array([(rho+sin_theta) / cos_theta, -1])
+        pt2 = np.array([-1, (rho+cos_theta) / sin_theta])
+
+    elif theta > (-np.pi/2) and theta < 0:
+        # fourth quarter
+        pt1 = np.array([(rho+sin_theta) / cos_theta, -1])
+        pt2 = np.array([1, (rho-cos_theta) / sin_theta])
+
+    elif theta > 0 and theta < (np.pi / 2):
+        # first quarter
+        pt1 = np.array([(rho-sin_theta) / cos_theta, 1])
+        pt2 = np.array([1, (rho-cos_theta) / sin_theta])
+        
+    elif theta > (np.pi / 2) and theta < np.pi:
+        # second quarter
+        pt1 = np.array([(rho-sin_theta) / cos_theta, 1])
+        pt2 = np.array([-1, (rho+cos_theta) / sin_theta])
+        
+    else:
+        print("Not found!")        
+
+    pt1 *= np.array([M//2, -N//2])
     pt1 += np.array([M//2, N//2])
-    pt2 *= np.array([M//2, N//2])
+    pt2 *= np.array([M//2, -N//2])
     pt2 += np.array([M//2, N//2])
     
-    if pt1[1] > N:
-        pt1[1] = N
-    if pt2[0] < M:
-        pt2[0] = N
-
     return (pt1.astype(int), pt2.astype(int))
 #/ ------------------------- MAIN ------------------------ /#
 
-img1 = cv2.imread('./im01.jpg', cv2.IMREAD_COLOR)
-# img2 = cv2.imread('./im02.jpg', cv2.IMREAD_COLOR)
 
-img1_edges = cv2.Canny(img1, 100, 250)
-# img2_edges = cv2.Canny(img2, 100, 250)
+img = cv2.imread('./im02.jpg', cv2.IMREAD_COLOR)
+# utl.showImg(img, 1)
+img_edges = cv2.Canny(img, 100, 250)
 
 # threshold for converting edges to binary
 thr = 10
-img1_edges[img1_edges > thr] = 255
-img1_edges[img1_edges <= thr] = 0
-# img2_edges[img2_edges > thr] = 255
-# img2_edges[img2_edges <= thr] = 0
+img_edges[img_edges > thr] = 255
+img_edges[img_edges <= thr] = 0
+# utl.showImg(img_edges, 1)
 
-M1, N1 = img1_edges.shape
+M, N = img_edges.shape
+angle_num = 300
+len_num = 300
+thr = 1e-2
 
-#cv2.imwrite('res01.jpg', img1_edges)
-#cv2.imwrite('res02.jpg', img2_edges)
+voting_mat, len_angle_spc = houghTran(img_edges, len_num, angle_num, thr)
+hough_space = utl.scaleIntensities(voting_mat)
 
-voting_mat, angle_line_spc = houghTran(img1_edges, (5, 5))
-print(voting_mat)
+cv2.imwrite("hough_space.jpg", hough_space)
 
-for i in range(5):
-    for j in range(5):
-        if voting_mat[i, j] >= 40:
-            pt1, pt2 = convertToXY(angle_line_spc[i, j, 0], angle_line_spc[i, j, 1], M1, N1)
-            print(pt1[0], pt1[1])
-            print(pt2[0], pt2[1])
-            # cv2.line(img1, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 5)
+# utl.showRange(voting_mat, 'R')
 
-utl.showImg(img1, 0.5, 'found lines')
+# for i in range(voting_mat.shape[0]):
+#     for j in range(voting_mat.shape[1]):
+#         if voting_mat[i, j] >= 0.4*np.amax(voting_mat):
+#             pt1, pt2 = convertToXY(len_angle_spc[i, j, 0], len_angle_spc[i, j, 1], N, M)
+#             cv2.line(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 1)
+
+# # utl.showImg(img, 1, 'found')
+# cv2.imwrite('lines-found.jpg', img)

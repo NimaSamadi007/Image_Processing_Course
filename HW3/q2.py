@@ -66,12 +66,9 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
     # only row synthesizing
     if y_s and y_f and (not x_s) and (not x_f) :
         patch_y = syn_tex[x_s:x_s+M_p, y_s:y_f, :]
-        matching_result_y = cv2.matchTemplate(tex, patch_y, cv2.TM_SQDIFF)
+        matching_result_y = cv2.matchTemplate(tex, patch_y, cv2.TM_SQDIFF_NORMED)
         # clip matching result to ensure size consistency
         matching_result_y = matching_result_y[:, :-(N_p-y_thr)]
-
-        # matching_indices = np.unravel_index(np.argsort(matching_result_y, axis=None)[-rand_sel:], 
-        #                                     matching_result_y.shape)
 
         matching_indices = np.unravel_index(np.argsort(matching_result_y, axis=None)[:rand_sel], 
                                             matching_result_y.shape)
@@ -98,13 +95,12 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
     # only column synthesizing
     elif x_s and x_f and (not y_s) and (not y_f):
         patch_x = syn_tex[x_s:x_f, y_s:y_s+N_p, :]
-        matching_result_x = cv2.matchTemplate(tex, patch_x, cv2.TM_SQDIFF)
+        matching_result_x = cv2.matchTemplate(tex, patch_x, cv2.TM_SQDIFF_NORMED)
         matching_result_x = matching_result_x[:-(M_p-x_thr), :]
 
         matching_indices = np.unravel_index(np.argsort(matching_result_x, axis=None)[:rand_sel], 
                                             matching_result_x.shape)
-        # matching_indices = np.unravel_index(np.argsort(matching_result_x, axis=None)[-rand_sel:], 
-        #                                     matching_result_x.shape)
+
         random_index = np.random.randint(low=0, high=rand_sel)
         matching_indices = np.array([matching_indices[0][random_index], matching_indices[1][random_index]])
         
@@ -182,7 +178,6 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
             
             tmp_mat = mat_shifted & mat_path_y[0:x_thr, 0:y_thr]
             common_points = np.nonzero(tmp_mat == 1)
-            print("Not begins")
             common_point = (common_points[0][-1], common_points[1][-1])
 
             mat_path_x[:, 0:common_point[1]] = 0
@@ -217,25 +212,25 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
 
 #/ ------------------- MAIN --------------- /#
 
-# texture = cv2.imread('./Textures/texture09.jpg', cv2.IMREAD_COLOR)
 texture = cv2.imread('./Textures/texture01.jpg', cv2.IMREAD_COLOR)
-
+print("Image loaded successfully, starting algorithm ...")
 # PARAMETERS:
 
 # texture size:
 M_t, N_t, _ = texture.shape
 # synthesized texture size:
-M_i, N_i = 2500, 2500
+M_i, N_i = 1000, 1000
 syn_texture = np.zeros((M_i, N_i, 3), dtype=np.uint8)
 # patch size
 M_p, N_p = 100, 100
 
-random_select = 1
+random_select = 5
 y_thr = 25
 x_thr = 25
 
 # generalizing implementation:
 for i in range((M_i - M_p) // (M_p - x_thr) + 1):
+    print("Synthesizing row {} ...".format(i))
     for j in range((N_i - N_p) // (N_p - y_thr) + 1):
         # for general case:
         x_end = i*M_p-(i-1)*(x_thr)
@@ -246,10 +241,8 @@ for i in range((M_i - M_p) // (M_p - x_thr) + 1):
         # first tile:
         if i == 0 and j == 0:
             # randomly select one patch from texture:
-            # x0 = np.random.randint(low=0, high=M_t-M_p)
-            # y0 = np.random.randint(low=0, high=N_t-N_p)
-            x0 = 30
-            y0 = 70
+            x0 = np.random.randint(low=0, high=M_t-M_p)
+            y0 = np.random.randint(low=0, high=N_t-N_p)
             syn_texture[0:M_p, 0:N_p, :] = texture[x0:x0+M_p, y0:y0+N_p, :]
 
         # first row:
@@ -268,11 +261,8 @@ for i in range((M_i - M_p) // (M_p - x_thr) + 1):
                           x_thr, y_thr, random_select)
         # L shape tiles:
         else:
-            # if i == 1:
             updateTexture(syn_texture, texture, M_p, N_p,
                         M_i, N_i, x_start, x_end, y_start, y_end,
                         x_thr, y_thr, random_select)
             
-# print(syn_texture.shape)
 cv2.imwrite('texture1.jpg', syn_texture)
-# utl.showImg(syn_texture, 1, 'syn te')
