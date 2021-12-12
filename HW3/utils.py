@@ -194,3 +194,40 @@ def findMinCut(matrix, mode="COL"):
         path = path.T
         path_mat = path_mat.T
         return path.reshape(path.shape[0], 1)
+
+def findLocalMax(mat, level_thr, noise_power):
+    "Finds local maximum of matrix, ignores values less than threshold"
+    "Noise is added to img to eliminate value equalities"
+    
+    M, N = mat.shape
+    # append zeros to left, right, top and bottom of matrix
+    ext_mat  = np.zeros((M+2, N+2), dtype=np.float64)
+    ext_mat[1:-1, 1:-1] = mat
+    less_indices = np.nonzero(ext_mat <= level_thr)
+    
+    noise = np.random.normal(0, noise_power, ext_mat.shape)
+    # add noise:
+    ext_mat += noise
+    # ignore values less than threshold
+    ext_mat[less_indices] = 0
+    # find local maximum:
+    x_max = []
+    y_max = []
+    for i in range(M):
+        for j in range(N):
+            # compare with all 8 neigbours
+            if (ext_mat[i+1, j+1] > ext_mat[i, j] and
+                    ext_mat[i+1, j+1] > ext_mat[i, j+1] and
+                    ext_mat[i+1, j+1] > ext_mat[i, j+2] and
+                    ext_mat[i+1, j+1] > ext_mat[i+1, j] and
+                    ext_mat[i+1, j+1] > ext_mat[i+1, j+2] and
+                    ext_mat[i+1, j+1] > ext_mat[i+2, j] and
+                    ext_mat[i+1, j+1] > ext_mat[i+2, j+1] and
+                    ext_mat[i+1, j+1] > ext_mat[i+2, j+2]) :
+                x_max.append(i)
+                y_max.append(j)
+    return np.array([x_max, y_max])
+    
+    
+    
+    

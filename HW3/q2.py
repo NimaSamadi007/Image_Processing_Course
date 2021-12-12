@@ -163,14 +163,14 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
 
 #/ ------------------- MAIN --------------- /#
 
-texture = cv2.imread('./Textures/texture01.jpg', cv2.IMREAD_COLOR)
+texture = cv2.imread('./Textures/texture03.jpg', cv2.IMREAD_COLOR)
 print("Image loaded successfully, starting algorithm ...")
 # PARAMETERS:
 
 # texture size:
 M_t, N_t, _ = texture.shape
 # synthesized texture size:
-M_i, N_i = 1000, 1000
+M_i, N_i = 2500, 2500
 syn_texture = np.zeros((M_i, N_i, 3), dtype=np.uint8)
 # patch size
 M_p, N_p = 100, 100
@@ -216,4 +216,4 @@ for i in range((M_i - M_p) // (M_p - x_thr) + 1):
                         M_i, N_i, x_start, x_end, y_start, y_end,
                         x_thr, y_thr, random_select)
             
-cv2.imwrite('texture1.jpg', syn_texture)
+cv2.imwrite('texture3.jpg', syn_texture)

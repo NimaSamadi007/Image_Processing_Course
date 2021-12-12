@@ -30,7 +30,7 @@ def houghTran(img_edges, len_level, angle_level, thr):
 
     # check every edge candidate for a line
     for i in range(M):
-        # print("In stage x={}".format(i))
+        print("In stage x={}".format(i))
         for j in range(N):
             if img_edges[i, j] == 255:
                 x = (j - N//2) / (N//2)
@@ -90,8 +90,8 @@ def convertToXY(rho, theta, M, N):
     return (pt1.astype(int), pt2.astype(int))
 #/ ------------------------- MAIN ------------------------ /#
 
-
 img = cv2.imread('./im02.jpg', cv2.IMREAD_COLOR)
+"""
 # utl.showImg(img, 1)
 img_edges = cv2.Canny(img, 100, 250)
 
@@ -102,22 +102,28 @@ img_edges[img_edges <= thr] = 0
 # utl.showImg(img_edges, 1)
 
 M, N = img_edges.shape
-angle_num = 300
-len_num = 300
+angle_num = 400
+len_num = 400
 thr = 1e-2
 
+print("Finding hough space representation ...")
 voting_mat, len_angle_spc = houghTran(img_edges, len_num, angle_num, thr)
 hough_space = utl.scaleIntensities(voting_mat)
+"""
+print(len(np.nonzero(voting_mat >= 0.4*np.amax(voting_mat))[0]))
 
+max_indices = utl.findLocalMax(voting_mat, 0.4*np.amax(voting_mat), 0.1)
+print(max_indices.shape)
+#utl.show()
 cv2.imwrite("hough_space.jpg", hough_space)
 
 # utl.showRange(voting_mat, 'R')
+print("Finding local maximums and drawing lines ...")
+for i in range(max_indices.shape[1]):
+    pt1, pt2 = convertToXY(len_angle_spc[max_indices[0, i], max_indices[1, i], 0], 
+                           len_angle_spc[max_indices[0, i], max_indices[1, i], 1], N, M)
+    cv2.line(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 1)
 
-# for i in range(voting_mat.shape[0]):
-#     for j in range(voting_mat.shape[1]):
-#         if voting_mat[i, j] >= 0.4*np.amax(voting_mat):
-#             pt1, pt2 = convertToXY(len_angle_spc[i, j, 0], len_angle_spc[i, j, 1], N, M)
-#             cv2.line(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 1)
-
-# # utl.showImg(img, 1, 'found')
-# cv2.imwrite('lines-found.jpg', img)
+#utl.showImg(img, 1, 'found')
+print("Done!")
+cv2.imwrite('lines-found.jpg', img)
