@@ -88,19 +88,34 @@ def convertToXY(rho, theta, M, N):
     pt2 += np.array([M//2, N//2])
     
     return (pt1.astype(int), pt2.astype(int))
+
+def isExist(arr, val, thr):
+    "checkes if val exists in arr with a threshold"
+    for i in range(len(arr)):
+        if abs(val - arr[i]) <= thr:
+            return i
+    # not found
+    return -1
+
+def isParallelWithThr(distinct_angles, angle, angle_appears, angle_thr, app_thr):
+    "cheks if given angle is distinct_angles and its repeatition is greater than thr"
+    for i in range(len(distinct_angles)):
+        if abs(angle - angles[i]) < angle_thr:
+            if angle_appears[i] >= app_thr:
+                return True
+    return False
 #/ ------------------------- MAIN ------------------------ /#
 
 img = cv2.imread('./im02.jpg', cv2.IMREAD_COLOR)
-"""
-# utl.showImg(img, 1)
 img_edges = cv2.Canny(img, 100, 250)
+#utl.showImg(img_edges, 0.5)
 
 # threshold for converting edges to binary
+"""
 thr = 10
 img_edges[img_edges > thr] = 255
 img_edges[img_edges <= thr] = 0
-# utl.showImg(img_edges, 1)
-
+utl.showImg(img_edges, 1)
 M, N = img_edges.shape
 angle_num = 400
 len_num = 400
@@ -109,21 +124,47 @@ thr = 1e-2
 print("Finding hough space representation ...")
 voting_mat, len_angle_spc = houghTran(img_edges, len_num, angle_num, thr)
 hough_space = utl.scaleIntensities(voting_mat)
+
+np.save('voting.npy', voting_mat)
 """
-print(len(np.nonzero(voting_mat >= 0.4*np.amax(voting_mat))[0]))
+voting_mat = np.load('voting.npy')
+print(len(np.nonzero(voting_mat >= 0.3*np.amax(voting_mat))[0]))
 
 max_indices = utl.findLocalMax(voting_mat, 0.4*np.amax(voting_mat), 0.1)
 print(max_indices.shape)
-#utl.show()
-cv2.imwrite("hough_space.jpg", hough_space)
 
-# utl.showRange(voting_mat, 'R')
+angles = max_indices[1, :]
+rhos = max_indices[0, :]
+print(angles)
+
+distinct_angles = []
+angles_appear = []
+
+distinct_angles.append(angles[0])
+angles_appear.append(1)
+
+
+for i in range(1, len(angles)):
+    index = isExist(distinct_angles, angles[i], 4)
+    if index == -1:
+        distinct_angles.append(angles[i])
+        angles_appear.append(1)
+    else: 
+        angles_appear[index] += 1
+        
+print(distinct_angles)
+print(angles_appear)
+
 print("Finding local maximums and drawing lines ...")
-for i in range(max_indices.shape[1]):
-    pt1, pt2 = convertToXY(len_angle_spc[max_indices[0, i], max_indices[1, i], 0], 
-                           len_angle_spc[max_indices[0, i], max_indices[1, i], 1], N, M)
-    cv2.line(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 1)
+angle_thr_ind = np.unravel_index(np.argsort(angles_appear, axis=None)[-2:], 
+                                 len(angles_appear))[0][0]
+angle_thr = angles_appear[angle_thr_ind]
 
-#utl.showImg(img, 1, 'found')
+for i in range(max_indices.shape[1]):
+    if isParallelWithThr(distinct_angles, max_indices[1, i], angles_appear, 4, angle_thr):
+        pt1, pt2 = convertToXY(len_angle_spc[max_indices[0, i], max_indices[1, i], 0], 
+                               len_angle_spc[max_indices[0, i], max_indices[1, i], 1], N, M)
+        cv2.line(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 2)
+
 print("Done!")
 cv2.imwrite('lines-found.jpg', img)
