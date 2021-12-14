@@ -108,26 +108,32 @@ def isParallelWithThr(distinct_angles, angle, angle_appears, angle_thr, app_thr)
 
 img = cv2.imread('./im02.jpg', cv2.IMREAD_COLOR)
 img_edges = cv2.Canny(img, 100, 250)
-#utl.showImg(img_edges, 0.5)
-
+#img_edges = cv2.Laplacian(img, ddepth=-1, ksize=1, borderType=cv2.BORDER_CONSTANT)
 # threshold for converting edges to binary
-"""
+
 thr = 10
 img_edges[img_edges > thr] = 255
 img_edges[img_edges <= thr] = 0
-utl.showImg(img_edges, 1)
+#utl.showImg(img_edges, 1)
 M, N = img_edges.shape
 angle_num = 400
 len_num = 400
 thr = 1e-2
+
+#utl.showImg(img_edges, 0.8)
+
+"""
 
 print("Finding hough space representation ...")
 voting_mat, len_angle_spc = houghTran(img_edges, len_num, angle_num, thr)
 hough_space = utl.scaleIntensities(voting_mat)
 
 np.save('voting.npy', voting_mat)
+np.save('space.npy', len_angle_spc)
 """
+
 voting_mat = np.load('voting.npy')
+len_angle_spc = np.load('space.npy')
 print(len(np.nonzero(voting_mat >= 0.3*np.amax(voting_mat))[0]))
 
 max_indices = utl.findLocalMax(voting_mat, 0.4*np.amax(voting_mat), 0.1)
@@ -152,19 +158,69 @@ for i in range(1, len(angles)):
     else: 
         angles_appear[index] += 1
         
-print(distinct_angles)
-print(angles_appear)
+#print(distinct_angles)
+#print(angles_appear)
 
-print("Finding local maximums and drawing lines ...")
+#print("Finding local maximums and drawing lines ...")
 angle_thr_ind = np.unravel_index(np.argsort(angles_appear, axis=None)[-2:], 
                                  len(angles_appear))[0][0]
 angle_thr = angles_appear[angle_thr_ind]
 
+rhos = []
+thetas = []
+# consider parallel lines and delete others
 for i in range(max_indices.shape[1]):
     if isParallelWithThr(distinct_angles, max_indices[1, i], angles_appear, 4, angle_thr):
-        pt1, pt2 = convertToXY(len_angle_spc[max_indices[0, i], max_indices[1, i], 0], 
-                               len_angle_spc[max_indices[0, i], max_indices[1, i], 1], N, M)
-        cv2.line(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 2)
+        rho = len_angle_spc[max_indices[0, i], max_indices[1, i], 0]
+        theta = len_angle_spc[max_indices[0, i], max_indices[1, i], 1]
+        rhos.append(rho)
+        thetas.append(theta)
+
+# try to remove lines that are not in chess area, using their color
+img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+final_rhos = []
+final_thetas = []
+for j in range(len(thetas)):
+    tmp_img = np.zeros((img.shape[0], img.shape[1]), dtype=img.dtype)
+    flag = False
+    pt1, pt2 = convertToXY(rhos[j], thetas[j], N, M)
+    cv2.line(tmp_img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), 255, 1)
+    
+    line_pixels = np.nonzero(tmp_img == 255)
+    x_pixels = line_pixels[0]
+    y_pixels = line_pixels[1]
+    
+    # check neighoubers for line_len and neigh_num each side
+    line_len = 20
+    neigh_num = 20
+    chess_square_thr = 150
+    
+    for i in range(len(x_pixels)-line_len):
+        xi = x_pixels[i]
+        yi = y_pixels[i]    
+        
+        left_equivalent_pixel = 0
+        right_equivalent_pixel = 0
+        for k in range(line_len):
+            left_equivalent_pixel += np.sum(img_gray[x_pixels[i+k], (yi-neigh_num) % N:yi])
+            right_equivalent_pixel += np.sum(img_gray[x_pixels[i+k], yi:(yi+neigh_num) % N])
+    
+        if abs(left_equivalent_pixel - right_equivalent_pixel) / (neigh_num * line_len) >= chess_square_thr:
+            print("True, line passes chess area!")
+            flag = True
+            break
+    if flag:
+        final_rhos.append(rhos[j])
+        final_thetas.append(thetas[j])
+
+#print(final_rhos)
+#print(final_thetas)
+#utl.showImg(tmp_img, 0.5)
+
+for i in range(len(final_thetas)):
+    pt1, pt2 = convertToXY(final_rhos[i], final_thetas[i], N, M)
+    cv2.line(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 2)
+
 
 print("Done!")
 cv2.imwrite('lines-found.jpg', img)
