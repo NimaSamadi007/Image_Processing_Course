@@ -82,10 +82,10 @@ def convertToXY(rho, theta, M, N):
     else:
         print("Not found!")        
 
-    pt1 *= np.array([M//2, -N//2])
-    pt1 += np.array([M//2, N//2])
-    pt2 *= np.array([M//2, -N//2])
-    pt2 += np.array([M//2, N//2])
+    pt1 *= np.array([N//2, -M//2])
+    pt1 += np.array([N//2, M//2])
+    pt2 *= np.array([N//2, -M//2])
+    pt2 += np.array([N//2, M//2])
     
     return (pt1.astype(int), pt2.astype(int))
 
@@ -122,18 +122,18 @@ thr = 1e-2
 
 #utl.showImg(img_edges, 0.8)
 
-"""
+
 
 print("Finding hough space representation ...")
 voting_mat, len_angle_spc = houghTran(img_edges, len_num, angle_num, thr)
 hough_space = utl.scaleIntensities(voting_mat)
 
-np.save('voting.npy', voting_mat)
-np.save('space.npy', len_angle_spc)
-"""
+#np.save('voting.npy', voting_mat)
+#np.save('space.npy', len_angle_spc)
 
-voting_mat = np.load('voting.npy')
-len_angle_spc = np.load('space.npy')
+
+#voting_mat = np.load('voting.npy')
+#len_angle_spc = np.load('space.npy')
 #print(len(np.nonzero(voting_mat >= 0.3*np.amax(voting_mat))[0]))
 
 max_indices = utl.findLocalMax(voting_mat, 0.4*np.amax(voting_mat), 0.1)
@@ -175,74 +175,104 @@ for i in range(max_indices.shape[1]):
         theta = len_angle_spc[max_indices[0, i], max_indices[1, i], 1]
         rhos.append(rho)
         thetas.append(theta)
-        
-# Approach 1 - using line colors:
-"""
-# try to remove lines that are not in chess area, using their color
-img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+rhos = np.array(rhos)
+thetas = np.array(thetas)
+
+#print(rhos)
+#print(thetas)
+img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+img_vel = img_hsv[:, :, -1]
+
+thetas_degree = (thetas / (np.pi) * 180)
 final_rhos = []
 final_thetas = []
-for j in range(len(thetas)):
-    tmp_img = np.zeros((img.shape[0], img.shape[1]), dtype=img.dtype)
-    flag = False
-    pt1, pt2 = convertToXY(rhos[j], thetas[j], N, M)
-    cv2.line(tmp_img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), 255, 1)
+for i in range(len(thetas)):
+    tmp_img = np.zeros((M, N), dtype=img.dtype)
     
-    line_pixels = np.nonzero(tmp_img == 255)
+    pt1, pt2 = convertToXY(rhos[i], thetas[i], M, N)
+    cv2.line(tmp_img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), 255, 1)
+
+    shifting_angle = 0
+    if thetas_degree[i] >= 0 and thetas_degree[i] <= 90:
+        # first quarter:
+        shifting_angle = -thetas_degree[i]
+    elif thetas_degree[i] >= 90 and thetas_degree[i] <= 180:
+        # second quarter
+        shifting_angle = 180-thetas_degree[i]
+    elif thetas_degree[i] >= -180 and thetas_degree[i] <= -90:
+        # third quarter
+        shifting_angle = -180-thetas_degree[i]
+    else:
+        # fourth quarter:
+        shifting_anlge = -thetas_degree[i]
+
+    # required rotation for aligning lines vertical
+    rotation_mat = cv2.getRotationMatrix2D((N//2, M//2), shifting_angle * 1.35, 1)
+    
+    
+    tmp_img_rot = cv2.warpAffine(tmp_img, rotation_mat, (N, M), cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+    img_vel_rot = cv2.warpAffine(img_vel, rotation_mat, (N, M), cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+
+    line_pixels = np.nonzero(tmp_img_rot == 255)
     x_pixels = line_pixels[0]
     y_pixels = line_pixels[1]
     
     # check neighoubers for line_len and neigh_num each side
-    line_len = 70
-    neigh_num = 100
-    chess_square_thr = 150
+    line_len = 20
+    neigh_num = 20
+    chess_square_thr = 120
+    voting_thr = 20
+    votes = 0
     
-    for i in range(len(x_pixels)-line_len):
-        xi = x_pixels[i]
-        yi = y_pixels[i]    
+    for j in range(len(x_pixels)-line_len):
+        xi = x_pixels[j]
+        yi = y_pixels[j]    
         
         left_equivalent_pixel = 0
         right_equivalent_pixel = 0
         total_num = neigh_num * line_len
         for k in range(line_len):
             if yi-neigh_num >= 0 and yi+neigh_num < N:
-                left_equivalent_pixel += np.sum(img_gray[x_pixels[i+k], yi-neigh_num:yi])
-                right_equivalent_pixel += np.sum(img_gray[x_pixels[i+k], yi:yi+neigh_num])
+                left_equivalent_pixel += np.sum(img_vel_rot[x_pixels[j+k], yi-neigh_num:yi])
+                right_equivalent_pixel += np.sum(img_vel_rot[x_pixels[j+k], yi:yi+neigh_num])
             else:
                 total_num -= neigh_num
         if total_num == neigh_num * line_len:
             if abs(left_equivalent_pixel - right_equivalent_pixel) / total_num >= chess_square_thr:
-                print("True, line passes chess area!")
-                print(left_equivalent_pixel / total_num, 
-                      right_equivalent_pixel / total_num)
+                votes += 1
                 flag = True
-                break
-    if flag:
-        final_rhos.append(rhos[j])
-        final_thetas.append(thetas[j])
-"""
-# Approach 2 - using intersection points:
-final_rhos = []
-final_thetas = []
 
-neigh_num = 10
+    if votes >= voting_thr:
+        print(votes)
+        print("True, line passes chess area!")
+        print(left_equivalent_pixel / total_num, 
+              right_equivalent_pixel / total_num)
+        final_rhos.append(rhos[i])
+        final_thetas.append(thetas[i])
 
-print("><><><><><><><><><><><><><><><><><")
-for i in range(len(thetas)):
-    tmp_img1 = np.zeros((img.shape[0], img.shape[1]), dtype=img.dtype)
-    pt1, pt2 = convertToXY(rhos[i], thetas[i], N, M)
+#print(final_rhos)
+#print(final_thetas)
+#print("Done!")
+
+img_cop = np.copy(img)
+for i in range(len(final_thetas)):
+    pt1, pt2 = convertToXY(final_rhos[i], final_thetas[i], M, N)
+    cv2.line(img_cop, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 2)
+
+cv2.imwrite('lines-found.jpg', img_cop)
+
+print("<><><><><><><><><><><><><><><><>")
+for i in range(len(final_thetas)):
+    tmp_img1 = np.zeros((M, N), dtype=img.dtype)
+    pt1, pt2 = convertToXY(final_rhos[i], final_thetas[i], M, N)
     cv2.line(tmp_img1, (pt1[0], pt1[1]), (pt2[0], pt2[1]), 255, 1)
-    x_pixels1, y_pixels1 = np.nonzero(tmp_img1 == 255)
     
-    #utl.showImg(tmp_img1, 0.5, 'tmp 1', False)
-
-    for j in range(len(thetas)):
+    for j in range(len(final_thetas)):
         if j != i:
-            #print(i, j)
-            tmp_img2 = np.zeros((img.shape[0], img.shape[1]), dtype=img.dtype)
-            pt3, pt4 = convertToXY(rhos[j], thetas[j], N, M)
+            tmp_img2 = np.zeros((M, N), dtype=img.dtype)
+            pt3, pt4 = convertToXY(final_rhos[j], final_thetas[j], M, N)
             cv2.line(tmp_img2, (pt3[0], pt3[1]), (pt4[0], pt4[1]), 255, 1)
-            x_pixels2, y_pixels2 = np.nonzero(tmp_img2 == 255)
             
             # finding intersection:
             x_intr, y_intr = np.nonzero(tmp_img1 & tmp_img2)
@@ -252,72 +282,12 @@ for i in range(len(thetas)):
                 if x_intr.size <= 0:
                     # no intersection can be found
                     continue
-                # found intersection:
-            x_index1 = np.nonzero(x_pixels1 == x_intr[0])[0]
-            y_index1 = np.nonzero(y_pixels1 == y_intr[0])[0]
-            
-            x_index2 = np.nonzero(x_pixels2 == x_intr[0])[0]
-            y_index2 = np.nonzero(y_pixels2 == y_intr[0])[0]
-            
-            if x_index1[0] - neigh_num < 0:    
-                x_start1 = x_pixels1[0]
-            else:
-                x_start1 = x_pixels1[x_index1[0] - neigh_num]
-            
-            if y_index1[0] - neigh_num < 0:
-                y_start1 = y_pixels1[0]
-            else:                    
-                y_start1 = y_pixels1[y_index1[0] - neigh_num]
-            
-            if x_index1[0] + neigh_num >= len(x_pixels1):
-                x_end1 = x_pixels1[-1]
-            else:
-                x_end1 = x_pixels1[x_index1[0] + neigh_num]
-            
-            if y_index1[0] + neigh_num >= len(y_pixels1):
-                y_end1 = y_pixels1[-1]
-            else:
-                y_end1 = y_pixels1[y_index1[0] + neigh_num]
 
-            ######################################
-            
-            if x_index2[0] - neigh_num < 0:    
-                x_start2 = x_pixels2[0]
-            else:
-                x_start2 = x_pixels2[x_index2[0] - neigh_num]
-            
-            if y_index2[0] - neigh_num < 0:
-                y_start2 = y_pixels2[0]
-            else:                    
-                y_start2 = y_pixels2[y_index2[0] - neigh_num]
-            
-            if x_index2[0] + neigh_num >= len(x_pixels2):
-                x_end2 = x_pixels2[-1]
-            else:
-                x_end2 = x_pixels2[x_index2[0] + neigh_num]
-            
-            if y_index2[0] + neigh_num >= len(y_pixels2):
-                y_end2 = y_pixels2[-1]
-            else:
-                y_end2 = y_pixels2[y_index2[0] + neigh_num]
-                
-            #cv2.rectangle(img, (y_start[0], x_start[0]), (y_end[0], x_end[0]), (0,0,255))
-            cv2.line(img, (y_start1, x_start1), (y_end1, x_end1), (0, 0, 255), 2)
-            cv2.line(img, (y_start2, x_start2), (y_end2, x_end2), (0, 0, 255), 2)
-            #print(x_index1[0], y_index1[0])
-            #print(x_index2[0], y_index2[0])
-            #print("-------------------")
-            #cv2.circle(img, (y_intr[0], x_intr[0]), 5, (0, 0, 255), -1)
+            cv2.circle(img, (y_intr[0], x_intr[0]), 5, (0, 0, 255), -1)
 
-                    
+
+cv2.imwrite('dots-found.jpg', img)
+
+print("Done!")                 
 #utl.showImg(tmp_img1, 0.5)
 
-"""
-for i in range(len(final_thetas)):
-    pt1, pt2 = convertToXY(final_rhos[i], final_thetas[i], N, M)
-    cv2.line(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 2)
-"""
-
-
-print("Done!")
-cv2.imwrite('lines-found.jpg', img)
