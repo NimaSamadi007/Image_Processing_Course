@@ -100,166 +100,262 @@ def isExist(arr, val, thr):
 def isParallelWithThr(distinct_angles, angle, angle_appears, angle_thr, app_thr):
     "cheks if given angle is distinct_angles and its repeatition is greater than thr"
     for i in range(len(distinct_angles)):
-        if abs(angle - angles[i]) < angle_thr:
+        if abs(angle - distinct_angles[i]) < angle_thr:
             if angle_appears[i] >= app_thr:
                 return True
     return False
+
+def lineDrawer(input_img, rhos, thetas, thick):
+    "Drawes different lines according to respective angles and rhos"
+    img_cop = np.copy(input_img)
+    M = input_img.shape[0]
+    N = input_img.shape[1]
+    for i in range(len(thetas)):
+        pt1, pt2 = convertToXY(rhos[i], thetas[i], M, N)
+        cv2.line(img_cop, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), thick)
+    return img_cop
+
+def img2bin(img, bin_thr):
+    "Makes an img binary within a threshold"
+    img[img > bin_thr] = 255
+    img[img <= bin_thr] = 0
+
+def findDistinctAngles(angles, common_lines):
+    "Findes distinct angles which are unique with a threshold"
+    distinct_angles = []
+    angles_appear = []
+
+    distinct_angles.append(angles1[0])
+    angles_appear.append(1)
+
+    for i in range(1, len(angles)):
+        index = isExist(distinct_angles, angles[i], common_lines)
+        if index == -1:
+            distinct_angles.append(angles[i])
+            angles_appear.append(1)
+        else: 
+            angles_appear[index] += 1
+    
+    return distinct_angles, angles_appear
+
+def findParallelLines(max_indices, distinct_angles, angles_appear, common_lines, app_thr, len_angle_spc):
+   " findes parallel lines and delete others "
+   rhos = []
+   thetas = []
+
+   for i in range(max_indices.shape[1]):
+       if isParallelWithThr(distinct_angles, max_indices[1, i], angles_appear, common_lines, app_thr):
+           rho = len_angle_spc[max_indices[0, i], max_indices[1, i], 0]
+           theta = len_angle_spc[max_indices[0, i], max_indices[1, i], 1]
+           rhos.append(rho)
+           thetas.append(theta)
+
+   rhos = np.array(rhos)
+   thetas = np.array(thetas)
+    
+   return rhos, thetas
+
+def passesChessArea(img, rhos, thetas, line_len, neigh_num, chess_square_thr, voting_thr):
+    "Finds lines that pass through the chess area"
+    final_rhos = []
+    final_thetas = []
+    thetas_degree = (thetas / (np.pi) * 180)
+
+    # the value of image is passed
+    M, N = img.shape
+    for i in range(len(thetas)):
+        tmp_img = np.zeros((M, N), dtype=img.dtype)
+        
+        pt1, pt2 = convertToXY(rhos[i], thetas[i], M, N)
+        cv2.line(tmp_img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), 255, 1)
+
+        shifting_angle = 0
+        if thetas_degree[i] >= 0 and thetas_degree[i] <= 90:
+            # first quarter:
+            shifting_angle = -thetas_degree[i]
+        elif thetas_degree[i] >= 90 and thetas_degree[i] <= 180:
+            # second quarter
+            shifting_angle = 180-thetas_degree[i]
+        elif thetas_degree[i] >= -180 and thetas_degree[i] <= -90:
+            # third quarter
+            shifting_angle = -180-thetas_degree[i]
+        else:
+            # fourth quarter:
+            shifting_angle = -thetas_degree[i]
+
+        # required rotation for aligning lines vertical
+        rotation_mat = cv2.getRotationMatrix2D((N//2, M//2), shifting_angle * 1.35, 1)
+        
+        tmp_img_rot = cv2.warpAffine(tmp_img, rotation_mat, (N, M), cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+        img_vel_rot = cv2.warpAffine(img, rotation_mat, (N, M), cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+
+        line_pixels = np.nonzero(tmp_img_rot == 255)
+        x_pixels = line_pixels[0]
+        y_pixels = line_pixels[1]
+        
+        # votes for checking neighoubers that satisfies the condition
+        votes = 0
+        
+        for j in range(len(x_pixels)-line_len):
+            yi = y_pixels[j]    
+            
+            left_equivalent_pixel = 0
+            right_equivalent_pixel = 0
+            total_num = neigh_num * line_len
+            for k in range(line_len):
+                if yi-neigh_num >= 0 and yi+neigh_num < N:
+                    left_equivalent_pixel += np.sum(img_vel_rot[x_pixels[j+k], yi-neigh_num:yi])
+                    right_equivalent_pixel += np.sum(img_vel_rot[x_pixels[j+k], yi:yi+neigh_num])
+                else:
+                    total_num -= neigh_num
+            if total_num == neigh_num * line_len:
+                if abs(left_equivalent_pixel - right_equivalent_pixel) / total_num >= chess_square_thr:
+                    votes += 1
+
+        if votes >= voting_thr:
+            print(votes)
+            print("True, line passes chess area!")
+            #print(left_equivalent_pixel / total_num, 
+            #      right_equivalent_pixel / total_num)
+            final_rhos.append(rhos[i])
+            final_thetas.append(thetas[i])
+    
+    return final_rhos, final_thetas
+
 #/ ------------------------- MAIN ------------------------ /#
 
-img = cv2.imread('./im02.jpg', cv2.IMREAD_COLOR)
-img_edges = cv2.Canny(img, 100, 250)
-#img_edges = cv2.Laplacian(img, ddepth=-1, ksize=1, borderType=cv2.BORDER_CONSTANT)
-# threshold for converting edges to binary
+img1 = cv2.imread('./im01.jpg', cv2.IMREAD_COLOR)
+img2 = cv2.imread('./im02.jpg', cv2.IMREAD_COLOR)
 
-thr = 10
-img_edges[img_edges > thr] = 255
-img_edges[img_edges <= thr] = 0
-#utl.showImg(img_edges, 1)
-M, N = img_edges.shape
+img1_edges = cv2.Canny(img1, 400, 500)
+img2_edges = cv2.Canny(img2, 400, 500)
+
+# threshold for converting edges to binary
+bin_thr = 10
+img2bin(img1_edges, bin_thr)
+img2bin(img2_edges, bin_thr)
+
+M1, N1 = img1_edges.shape
+M2, N2 = img2_edges.shape
+
 angle_num = 400
 len_num = 400
-thr = 1e-2
+hough_thr = 1e-2
 
-#utl.showImg(img_edges, 0.8)
+#print("Finding hough space representation ...")
+#voting_mat1, len_angle_spc1 = houghTran(img1_edges, len_num, angle_num, hough_thr)
+#voting_mat2, len_angle_spc2 = houghTran(img2_edges, len_num, angle_num, hough_thr)
+#hough_space = utl.scaleIntensities(voting_mat)
+
+#np.save('voting1.npy', voting_mat1)
+#np.save('space1.npy', len_angle_spc1)
+
+#np.save('voting2.npy', voting_mat2)
+#np.save('space2.npy', len_angle_spc2)
 
 
+voting_mat1 = np.load('voting1.npy')
+len_angle_spc1 = np.load('space1.npy')
 
-print("Finding hough space representation ...")
-voting_mat, len_angle_spc = houghTran(img_edges, len_num, angle_num, thr)
-hough_space = utl.scaleIntensities(voting_mat)
-
-#np.save('voting.npy', voting_mat)
-#np.save('space.npy', len_angle_spc)
+voting_mat2 = np.load('voting2.npy')
+len_angle_spc2 = np.load('space2.npy')
 
 
-#voting_mat = np.load('voting.npy')
-#len_angle_spc = np.load('space.npy')
-#print(len(np.nonzero(voting_mat >= 0.3*np.amax(voting_mat))[0]))
+max_indices1 = utl.findLocalMax(voting_mat1, 0.48 * np.amax(voting_mat1), 0.1)
+max_indices2 = utl.findLocalMax(voting_mat2, 0.48 * np.amax(voting_mat2), 0.1)
 
-max_indices = utl.findLocalMax(voting_mat, 0.4*np.amax(voting_mat), 0.1)
 #print(max_indices.shape)
+rhos1 = max_indices1[0, :]
+angles1 = max_indices1[1, :]
 
-angles = max_indices[1, :]
-rhos = max_indices[0, :]
+rhos2 = max_indices2[0, :]
+angles2 = max_indices2[1, :]
 #print(angles)
 
-distinct_angles = []
-angles_appear = []
+#img_m1 = lineDrawer(img1, len_angle_spc1[rhos1, angles1, 0], len_angle_spc1[rhos1, angles1, 1], 2)
+#utl.showImg(img_m1, 0.5, 'all lines1', False)
 
-distinct_angles.append(angles[0])
-angles_appear.append(1)
+#img_m2 = lineDrawer(img2, len_angle_spc2[rhos2, angles2, 0], len_angle_spc2[rhos2, angles2, 1], 2)
+#utl.showImg(img_m2, 0.5, 'all lines2')
+
+# threshold for angles to be considered as one line
+common_lines = 20
+
+distinct_angles1, angles_appear1 = findDistinctAngles(angles1, common_lines)
+distinct_angles2, angles_appear2 = findDistinctAngles(angles2, common_lines)
 
 
-for i in range(1, len(angles)):
-    index = isExist(distinct_angles, angles[i], 3)
-    if index == -1:
-        distinct_angles.append(angles[i])
-        angles_appear.append(1)
-    else: 
-        angles_appear[index] += 1
-        
-print(distinct_angles)
-print(angles_appear)
+# how many choices of threshold is available for repeatness of lines
+possible_choices = 4
 
-#print("Finding local maximums and drawing lines ...")
-angle_thr_ind = np.unravel_index(np.argsort(angles_appear, axis=None)[-2:], 
-                                 len(angles_appear))[0][0]
-app_thr = angles_appear[angle_thr_ind]
+print("Raw rhos and thetas: ")        
+print(distinct_angles1)
+print(angles_appear1)
 
-rhos = []
-thetas = []
-# consider parallel lines and delete others
-for i in range(max_indices.shape[1]):
-    if isParallelWithThr(distinct_angles, max_indices[1, i], angles_appear, 3, app_thr):
-        rho = len_angle_spc[max_indices[0, i], max_indices[1, i], 0]
-        theta = len_angle_spc[max_indices[0, i], max_indices[1, i], 1]
-        rhos.append(rho)
-        thetas.append(theta)
+print(distinct_angles2)
+print(angles_appear2)
+print("--------------------------")
 
-rhos = np.array(rhos)
-thetas = np.array(thetas)
+angle_thr_ind1 = np.unravel_index(np.argsort(angles_appear1, axis=None)[-possible_choices:], 
+                                 len(angles_appear1))[0][0]
+app_thr1 = angles_appear1[angle_thr_ind1]
 
-#print(rhos)
-#print(thetas)
-img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-img_vel = img_hsv[:, :, -1]
+angle_thr_ind2 = np.unravel_index(np.argsort(angles_appear2, axis=None)[-possible_choices:], 
+                                 len(angles_appear2))[0][0]
+app_thr2 = angles_appear2[angle_thr_ind2]
 
-thetas_degree = (thetas / (np.pi) * 180)
-final_rhos = []
-final_thetas = []
-for i in range(len(thetas)):
-    tmp_img = np.zeros((M, N), dtype=img.dtype)
-    
-    pt1, pt2 = convertToXY(rhos[i], thetas[i], M, N)
-    cv2.line(tmp_img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), 255, 1)
+print("app_thr1: {}, app_thr2: {}".format(app_thr1, app_thr2))
+print("--------------------------")
 
-    shifting_angle = 0
-    if thetas_degree[i] >= 0 and thetas_degree[i] <= 90:
-        # first quarter:
-        shifting_angle = -thetas_degree[i]
-    elif thetas_degree[i] >= 90 and thetas_degree[i] <= 180:
-        # second quarter
-        shifting_angle = 180-thetas_degree[i]
-    elif thetas_degree[i] >= -180 and thetas_degree[i] <= -90:
-        # third quarter
-        shifting_angle = -180-thetas_degree[i]
-    else:
-        # fourth quarter:
-        shifting_anlge = -thetas_degree[i]
+rhos1, thetas1 = findParallelLines(max_indices1, distinct_angles1, 
+                                   angles_appear1, common_lines, app_thr1, len_angle_spc1)
 
-    # required rotation for aligning lines vertical
-    rotation_mat = cv2.getRotationMatrix2D((N//2, M//2), shifting_angle * 1.35, 1)
-    
-    
-    tmp_img_rot = cv2.warpAffine(tmp_img, rotation_mat, (N, M), cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
-    img_vel_rot = cv2.warpAffine(img_vel, rotation_mat, (N, M), cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+rhos2, thetas2 = findParallelLines(max_indices2, distinct_angles2, 
+                                   angles_appear2, common_lines, app_thr2, len_angle_spc2)
 
-    line_pixels = np.nonzero(tmp_img_rot == 255)
-    x_pixels = line_pixels[0]
-    y_pixels = line_pixels[1]
-    
-    # check neighoubers for line_len and neigh_num each side
-    line_len = 20
-    neigh_num = 20
-    chess_square_thr = 120
-    voting_thr = 20
-    votes = 0
-    
-    for j in range(len(x_pixels)-line_len):
-        xi = x_pixels[j]
-        yi = y_pixels[j]    
-        
-        left_equivalent_pixel = 0
-        right_equivalent_pixel = 0
-        total_num = neigh_num * line_len
-        for k in range(line_len):
-            if yi-neigh_num >= 0 and yi+neigh_num < N:
-                left_equivalent_pixel += np.sum(img_vel_rot[x_pixels[j+k], yi-neigh_num:yi])
-                right_equivalent_pixel += np.sum(img_vel_rot[x_pixels[j+k], yi:yi+neigh_num])
-            else:
-                total_num -= neigh_num
-        if total_num == neigh_num * line_len:
-            if abs(left_equivalent_pixel - right_equivalent_pixel) / total_num >= chess_square_thr:
-                votes += 1
-                flag = True
+#print("Parallel lines: ")
+#print(rhos1)
+#print(thetas1)
 
-    if votes >= voting_thr:
-        print(votes)
-        print("True, line passes chess area!")
-        print(left_equivalent_pixel / total_num, 
-              right_equivalent_pixel / total_num)
-        final_rhos.append(rhos[i])
-        final_thetas.append(thetas[i])
+#print(rhos2)
+#print(thetas2)
+#print("--------------------------")
 
-#print(final_rhos)
-#print(final_thetas)
-#print("Done!")
+#img_m1 = lineDrawer(img1, rhos1, thetas1, 2)
+#img_m2 = lineDrawer(img2, rhos2, thetas2, 2)
 
-img_cop = np.copy(img)
-for i in range(len(final_thetas)):
-    pt1, pt2 = convertToXY(final_rhos[i], final_thetas[i], M, N)
-    cv2.line(img_cop, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 2)
+#utl.showImg(img_m1, 0.5, 'reduced lines1', False)
+#utl.showImg(img_m2, 0.5, 'reduced lines2')
 
+
+img_hsv1 = cv2.cvtColor(img1, cv2.COLOR_BGR2HSV)
+img_vel1 = img_hsv1[:, :, -1]
+
+img_hsv2 = cv2.cvtColor(img2, cv2.COLOR_BGR2HSV)
+img_vel2 = img_hsv2[:, :, -1]
+
+# thresholds to check if a line passes through chess area
+line_len = 20
+neigh_num = 20
+chess_square_thr = 120
+voting_thr = 80
+
+print("Img 1 lines")
+final_rhos1, final_thetas1 = passesChessArea(img_vel1, rhos1, thetas1, line_len, 
+                                             neigh_num, chess_square_thr, voting_thr)
+
+print("Img 2 lines")
+final_rhos2, final_thetas2 = passesChessArea(img_vel2, rhos2, thetas2, line_len, 
+                                             neigh_num, chess_square_thr, voting_thr)
+
+img_m1 = lineDrawer(img1, final_rhos1, final_thetas1, 2)
+img_m2 = lineDrawer(img2, final_rhos2, final_thetas2, 2)
+
+utl.showImg(img_m1, 0.5, 'final lines1', False)
+utl.showImg(img_m2, 0.5, 'final lines2')
+
+
+"""
 cv2.imwrite('lines-found.jpg', img_cop)
 
 print("<><><><><><><><><><><><><><><><>")
@@ -288,6 +384,5 @@ for i in range(len(final_thetas)):
 
 cv2.imwrite('dots-found.jpg', img)
 
-print("Done!")                 
-#utl.showImg(tmp_img1, 0.5)
-
+"""
+print("Done!")     
