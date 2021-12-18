@@ -41,7 +41,11 @@ def calGaussFilter(dsize, sigma, normal=False):
 
 def showImg(img, res_factor, title='input image', wait_flag=True):
     res = (int(img.shape[1]*res_factor), int(img.shape[0]*res_factor))
-    img_show = cv2.resize(img, res)
+    if res_factor >= 1:
+        img_show = cv2.resize(img, res, interpolation=cv2.INTER_LINEAR)
+    else:
+        img_show = cv2.resize(img, res, interpolation=cv2.INTER_AREA)
+
     cv2.imshow(title, img_show)
     if wait_flag:
         cv2.waitKey(0)
