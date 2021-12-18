@@ -155,7 +155,7 @@ def findParallelLines(max_indices, distinct_angles, angles_appear, common_lines,
     
    return rhos, thetas
 
-def passesChessArea(img, rhos, thetas, line_len, neigh_num, chess_square_thr, voting_thr):
+def passesChessArea(img, rhos, thetas, line_len, neigh_num, chess_square_thr):
     "Finds lines that pass through the chess area"
     final_rhos = []
     final_thetas = []
@@ -163,6 +163,7 @@ def passesChessArea(img, rhos, thetas, line_len, neigh_num, chess_square_thr, vo
 
     # the value of image is passed
     M, N = img.shape
+    votes_arr = []
     for i in range(len(thetas)):
         tmp_img = np.zeros((M, N), dtype=img.dtype)
         
@@ -212,15 +213,60 @@ def passesChessArea(img, rhos, thetas, line_len, neigh_num, chess_square_thr, vo
                 if abs(left_equivalent_pixel - right_equivalent_pixel) / total_num >= chess_square_thr:
                     votes += 1
 
-        if votes >= voting_thr:
-            print(votes)
-            print("True, line passes chess area!")
-            #print(left_equivalent_pixel / total_num, 
-            #      right_equivalent_pixel / total_num)
+        votes_arr.append(votes)        
+        
+    
+    #print(votes_arr)
+    # a fraction of average is used as voting threshold
+    voting_thr = 0.9 * np.sum(votes_arr) / len(votes_arr)
+    print("voting_thr: {}".format(voting_thr))
+    for i in range(len(votes_arr)):
+        if votes_arr[i] >= voting_thr:
+            #print(votes_arr[i])
+            #print("True, line passes chess area!")
             final_rhos.append(rhos[i])
             final_thetas.append(thetas[i])
-    
+        
     return final_rhos, final_thetas
+
+def calMaxColorThreshold(img_vel, step):
+    "Calculates maximum difference between black and white colors in predefined squares"
+    M, N = img_vel.shape
+    max_diff = 0
+    for i in range(0, M, step):
+        for j in range(0, N, step):
+            square = img_vel[i:i+step, j:j+step] 
+            max_diff += (np.amax(square) - np.amin(square))
+    
+    return max_diff / (M / step * N / step)
+
+def drawIntersectionPoints(in_img, rhos, thetas):
+    "Draws intersection points of every possible two lines"
+    img = np.copy(in_img)
+    M, N, _ = img.shape
+    for i in range(len(thetas)):
+        tmp_img1 = np.zeros((M, N), dtype=img.dtype)
+        pt1, pt2 = convertToXY(rhos[i], thetas[i], M, N)
+        cv2.line(tmp_img1, (pt1[0], pt1[1]), (pt2[0], pt2[1]), 255, 1)
+        
+        for j in range(len(thetas)):
+            if j != i:
+                tmp_img2 = np.zeros((M, N), dtype=img.dtype)
+                pt3, pt4 = convertToXY(rhos[j], thetas[j], M, N)
+                cv2.line(tmp_img2, (pt3[0], pt3[1]), (pt4[0], pt4[1]), 255, 1)
+                
+                # finding intersection:
+                x_intr, y_intr = np.nonzero(tmp_img1 & tmp_img2)
+                if x_intr.size <= 0:
+                    tmp_img2[:, 1:] = tmp_img2[:, 0:-1]
+                    x_intr, y_intr = np.nonzero(tmp_img1 & tmp_img2)
+                    if x_intr.size <= 0:
+                        # no intersection can be found, go next round
+                        continue
+                # draw the intersection point
+                cv2.circle(img, (y_intr[0], x_intr[0]), 5, (0, 0, 255), -1)
+    
+    return img
 
 #/ ------------------------- MAIN ------------------------ /#
 
@@ -261,8 +307,8 @@ voting_mat2 = np.load('voting2.npy')
 len_angle_spc2 = np.load('space2.npy')
 
 
-max_indices1 = utl.findLocalMax(voting_mat1, 0.48 * np.amax(voting_mat1), 0.1)
-max_indices2 = utl.findLocalMax(voting_mat2, 0.48 * np.amax(voting_mat2), 0.1)
+max_indices1 = utl.findLocalMax(voting_mat1, 0.46 * np.amax(voting_mat1), 0.1)
+max_indices2 = utl.findLocalMax(voting_mat2, 0.46 * np.amax(voting_mat2), 0.1)
 
 #print(max_indices.shape)
 rhos1 = max_indices1[0, :]
@@ -279,7 +325,7 @@ angles2 = max_indices2[1, :]
 #utl.showImg(img_m2, 0.5, 'all lines2')
 
 # threshold for angles to be considered as one line
-common_lines = 20
+common_lines = angle_num / 20
 
 distinct_angles1, angles_appear1 = findDistinctAngles(angles1, common_lines)
 distinct_angles2, angles_appear2 = findDistinctAngles(angles2, common_lines)
@@ -335,54 +381,76 @@ img_hsv2 = cv2.cvtColor(img2, cv2.COLOR_BGR2HSV)
 img_vel2 = img_hsv2[:, :, -1]
 
 # thresholds to check if a line passes through chess area
-line_len = 20
-neigh_num = 20
-chess_square_thr = 120
-voting_thr = 80
+line_len = 15
+neigh_num = 15
+
+print("Color thresholds:")
+chess_square_thr1 = calMaxColorThreshold(img_vel1, int(1.6*(line_len + neigh_num)))
+chess_square_thr2 = calMaxColorThreshold(img_vel2, int(1.6*(line_len + neigh_num)))
+print(chess_square_thr1)
+print(chess_square_thr2)
 
 print("Img 1 lines")
-final_rhos1, final_thetas1 = passesChessArea(img_vel1, rhos1, thetas1, line_len, 
-                                             neigh_num, chess_square_thr, voting_thr)
+rhos1, thetas1 = passesChessArea(img_vel1, rhos1, thetas1, line_len, 
+                                 neigh_num, chess_square_thr1)
 
 print("Img 2 lines")
-final_rhos2, final_thetas2 = passesChessArea(img_vel2, rhos2, thetas2, line_len, 
-                                             neigh_num, chess_square_thr, voting_thr)
+rhos2, thetas2 = passesChessArea(img_vel2, rhos2, thetas2, line_len, 
+                                 neigh_num, chess_square_thr2)
+
+
+
+#utl.showImg(img_m1, 0.5, 'final lines1', False)
+#utl.showImg(img_m2, 0.5, 'final lines2')
+
+# showes if an element is deleted during NMS
+
+
+def isLineSimmilar(rho1, theta1, rho2, theta2, rho_thr, theta_thr):
+    "Checks if two lines are simillar in img i.e. they are same line"
+    if (abs(theta1 - theta2) <= theta_thr) and (abs(rho1 - rho2) <= rho_thr):
+        return True
+    elif (abs(theta1 - theta2 - np.pi) <= theta_thr) and (abs(rho1 + rho2) <= rho_thr):
+        return True
+    elif (abs(theta1 - theta2 + np.pi) <= theta_thr) and (abs(rho1 + rho2) <= rho_thr):
+        return True
+    else:
+        return False
+
+def deleteSimillarLines(rhos, thetas, rho_thr, theta_thr):
+    "Deletes same line, simillar to NMS algorithm"
+    deleted = np.zeros(len(thetas), dtype=int)
+    for i in range(len(thetas)):
+        if not deleted[i]:
+            for j in range(i+1, len(thetas)):
+            # check if the lines are simillar within a threshold:
+                if isLineSimmilar(rhos[i], thetas[i], rhos[j], thetas[j], rho_thr, theta_thr):
+                    deleted[j] = 1
+    # Now using 'deleted' array, delete redundant elements
+    final_thetas = []
+    final_rhos = []
+    for i in range(len(deleted)):
+        if not deleted[i]:
+            final_thetas.append(thetas[i])
+            final_rhos.append(rhos[i])
+    print(deleted)        
+    return final_rhos, final_thetas
+
+
+final_rhos1, final_thetas1 = deleteSimillarLines(rhos1, thetas1, 0.05, 0.05)
+final_rhos2, final_thetas2 = deleteSimillarLines(rhos2, thetas2, 0.05, 0.05)
+
 
 img_m1 = lineDrawer(img1, final_rhos1, final_thetas1, 2)
 img_m2 = lineDrawer(img2, final_rhos2, final_thetas2, 2)
 
-utl.showImg(img_m1, 0.5, 'final lines1', False)
-utl.showImg(img_m2, 0.5, 'final lines2')
-
-
+cv2.imwrite('lines-found1.jpg', img_m1)
+cv2.imwrite('lines-found2.jpg', img_m2)
 """
-cv2.imwrite('lines-found.jpg', img_cop)
+img_dots1 = drawIntersectionPoints(img1, final_rhos1, final_thetas1)
+img_dots2 = drawIntersectionPoints(img2, final_rhos2, final_thetas2)
 
-print("<><><><><><><><><><><><><><><><>")
-for i in range(len(final_thetas)):
-    tmp_img1 = np.zeros((M, N), dtype=img.dtype)
-    pt1, pt2 = convertToXY(final_rhos[i], final_thetas[i], M, N)
-    cv2.line(tmp_img1, (pt1[0], pt1[1]), (pt2[0], pt2[1]), 255, 1)
-    
-    for j in range(len(final_thetas)):
-        if j != i:
-            tmp_img2 = np.zeros((M, N), dtype=img.dtype)
-            pt3, pt4 = convertToXY(final_rhos[j], final_thetas[j], M, N)
-            cv2.line(tmp_img2, (pt3[0], pt3[1]), (pt4[0], pt4[1]), 255, 1)
-            
-            # finding intersection:
-            x_intr, y_intr = np.nonzero(tmp_img1 & tmp_img2)
-            if x_intr.size <= 0:
-                tmp_img2[:, 1:] = tmp_img2[:, 0:-1]
-                x_intr, y_intr = np.nonzero(tmp_img1 & tmp_img2)
-                if x_intr.size <= 0:
-                    # no intersection can be found
-                    continue
-
-            cv2.circle(img, (y_intr[0], x_intr[0]), 5, (0, 0, 255), -1)
-
-
-cv2.imwrite('dots-found.jpg', img)
-
+cv2.imwrite('dots-found1.jpg', img_dots1)
+cv2.imwrite('dots-found2.jpg', img_dots2)
 """
 print("Done!")     
