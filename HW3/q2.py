@@ -163,7 +163,8 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
 
 #/ ------------------- MAIN --------------- /#
 
-texture = cv2.imread('./Textures/texture03.jpg', cv2.IMREAD_COLOR)
+img_index = 19
+texture = cv2.imread('./Textures/texture{}.jpg'.format(img_index), cv2.IMREAD_COLOR)
 print("Image loaded successfully, starting algorithm ...")
 # PARAMETERS:
 
@@ -216,4 +217,5 @@ for i in range((M_i - M_p) // (M_p - x_thr) + 1):
                         M_i, N_i, x_start, x_end, y_start, y_end,
                         x_thr, y_thr, random_select)
             
-cv2.imwrite('texture3.jpg', syn_texture)
+cv2.imwrite('texture{}.jpg'.format(img_index), syn_texture)
+print("Done!")
