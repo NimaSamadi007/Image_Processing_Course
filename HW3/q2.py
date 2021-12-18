@@ -163,7 +163,7 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
 
 #/ ------------------- MAIN --------------- /#
 
-img_index = 19
+img_index = 13
 texture = cv2.imread('./Textures/texture{}.jpg'.format(img_index), cv2.IMREAD_COLOR)
 print("Image loaded successfully, starting algorithm ...")
 # PARAMETERS:
