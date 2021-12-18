@@ -30,7 +30,8 @@ def houghTran(img_edges, len_level, angle_level, thr):
 
     # check every edge candidate for a line
     for i in range(M):
-        print("In stage x={}".format(i))
+        if (i % 10) == 0:
+            print("In row x={}".format(i))
         for j in range(N):
             if img_edges[i, j] == 255:
                 x = (j - N//2) / (N//2)
@@ -185,7 +186,7 @@ def passesChessArea(img, rhos, thetas, line_len, neigh_num, chess_square_thr):
             shifting_angle = -thetas_degree[i]
 
         # required rotation for aligning lines vertical
-        rotation_mat = cv2.getRotationMatrix2D((N//2, M//2), shifting_angle * 1.35, 1)
+        rotation_mat = cv2.getRotationMatrix2D((N//2, M//2), shifting_angle * (1.35), 1)
         
         tmp_img_rot = cv2.warpAffine(tmp_img, rotation_mat, (N, M), cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
         img_vel_rot = cv2.warpAffine(img, rotation_mat, (N, M), cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
@@ -215,15 +216,10 @@ def passesChessArea(img, rhos, thetas, line_len, neigh_num, chess_square_thr):
 
         votes_arr.append(votes)        
         
-    
-    #print(votes_arr)
     # a fraction of average is used as voting threshold
     voting_thr = 0.9 * np.sum(votes_arr) / len(votes_arr)
-    print("voting_thr: {}".format(voting_thr))
     for i in range(len(votes_arr)):
         if votes_arr[i] >= voting_thr:
-            #print(votes_arr[i])
-            #print("True, line passes chess area!")
             final_rhos.append(rhos[i])
             final_thetas.append(thetas[i])
         
@@ -268,144 +264,6 @@ def drawIntersectionPoints(in_img, rhos, thetas):
     
     return img
 
-#/ ------------------------- MAIN ------------------------ /#
-
-img1 = cv2.imread('./im01.jpg', cv2.IMREAD_COLOR)
-img2 = cv2.imread('./im02.jpg', cv2.IMREAD_COLOR)
-
-img1_edges = cv2.Canny(img1, 400, 500)
-img2_edges = cv2.Canny(img2, 400, 500)
-
-# threshold for converting edges to binary
-bin_thr = 10
-img2bin(img1_edges, bin_thr)
-img2bin(img2_edges, bin_thr)
-
-M1, N1 = img1_edges.shape
-M2, N2 = img2_edges.shape
-
-angle_num = 400
-len_num = 400
-hough_thr = 1e-2
-
-#print("Finding hough space representation ...")
-#voting_mat1, len_angle_spc1 = houghTran(img1_edges, len_num, angle_num, hough_thr)
-#voting_mat2, len_angle_spc2 = houghTran(img2_edges, len_num, angle_num, hough_thr)
-#hough_space = utl.scaleIntensities(voting_mat)
-
-#np.save('voting1.npy', voting_mat1)
-#np.save('space1.npy', len_angle_spc1)
-
-#np.save('voting2.npy', voting_mat2)
-#np.save('space2.npy', len_angle_spc2)
-
-
-voting_mat1 = np.load('voting1.npy')
-len_angle_spc1 = np.load('space1.npy')
-
-voting_mat2 = np.load('voting2.npy')
-len_angle_spc2 = np.load('space2.npy')
-
-
-max_indices1 = utl.findLocalMax(voting_mat1, 0.46 * np.amax(voting_mat1), 0.1)
-max_indices2 = utl.findLocalMax(voting_mat2, 0.46 * np.amax(voting_mat2), 0.1)
-
-#print(max_indices.shape)
-rhos1 = max_indices1[0, :]
-angles1 = max_indices1[1, :]
-
-rhos2 = max_indices2[0, :]
-angles2 = max_indices2[1, :]
-#print(angles)
-
-#img_m1 = lineDrawer(img1, len_angle_spc1[rhos1, angles1, 0], len_angle_spc1[rhos1, angles1, 1], 2)
-#utl.showImg(img_m1, 0.5, 'all lines1', False)
-
-#img_m2 = lineDrawer(img2, len_angle_spc2[rhos2, angles2, 0], len_angle_spc2[rhos2, angles2, 1], 2)
-#utl.showImg(img_m2, 0.5, 'all lines2')
-
-# threshold for angles to be considered as one line
-common_lines = angle_num / 20
-
-distinct_angles1, angles_appear1 = findDistinctAngles(angles1, common_lines)
-distinct_angles2, angles_appear2 = findDistinctAngles(angles2, common_lines)
-
-
-# how many choices of threshold is available for repeatness of lines
-possible_choices = 4
-
-print("Raw rhos and thetas: ")        
-print(distinct_angles1)
-print(angles_appear1)
-
-print(distinct_angles2)
-print(angles_appear2)
-print("--------------------------")
-
-angle_thr_ind1 = np.unravel_index(np.argsort(angles_appear1, axis=None)[-possible_choices:], 
-                                 len(angles_appear1))[0][0]
-app_thr1 = angles_appear1[angle_thr_ind1]
-
-angle_thr_ind2 = np.unravel_index(np.argsort(angles_appear2, axis=None)[-possible_choices:], 
-                                 len(angles_appear2))[0][0]
-app_thr2 = angles_appear2[angle_thr_ind2]
-
-print("app_thr1: {}, app_thr2: {}".format(app_thr1, app_thr2))
-print("--------------------------")
-
-rhos1, thetas1 = findParallelLines(max_indices1, distinct_angles1, 
-                                   angles_appear1, common_lines, app_thr1, len_angle_spc1)
-
-rhos2, thetas2 = findParallelLines(max_indices2, distinct_angles2, 
-                                   angles_appear2, common_lines, app_thr2, len_angle_spc2)
-
-#print("Parallel lines: ")
-#print(rhos1)
-#print(thetas1)
-
-#print(rhos2)
-#print(thetas2)
-#print("--------------------------")
-
-#img_m1 = lineDrawer(img1, rhos1, thetas1, 2)
-#img_m2 = lineDrawer(img2, rhos2, thetas2, 2)
-
-#utl.showImg(img_m1, 0.5, 'reduced lines1', False)
-#utl.showImg(img_m2, 0.5, 'reduced lines2')
-
-
-img_hsv1 = cv2.cvtColor(img1, cv2.COLOR_BGR2HSV)
-img_vel1 = img_hsv1[:, :, -1]
-
-img_hsv2 = cv2.cvtColor(img2, cv2.COLOR_BGR2HSV)
-img_vel2 = img_hsv2[:, :, -1]
-
-# thresholds to check if a line passes through chess area
-line_len = 15
-neigh_num = 15
-
-print("Color thresholds:")
-chess_square_thr1 = calMaxColorThreshold(img_vel1, int(1.6*(line_len + neigh_num)))
-chess_square_thr2 = calMaxColorThreshold(img_vel2, int(1.6*(line_len + neigh_num)))
-print(chess_square_thr1)
-print(chess_square_thr2)
-
-print("Img 1 lines")
-rhos1, thetas1 = passesChessArea(img_vel1, rhos1, thetas1, line_len, 
-                                 neigh_num, chess_square_thr1)
-
-print("Img 2 lines")
-rhos2, thetas2 = passesChessArea(img_vel2, rhos2, thetas2, line_len, 
-                                 neigh_num, chess_square_thr2)
-
-
-
-#utl.showImg(img_m1, 0.5, 'final lines1', False)
-#utl.showImg(img_m2, 0.5, 'final lines2')
-
-# showes if an element is deleted during NMS
-
-
 def isLineSimmilar(rho1, theta1, rho2, theta2, rho_thr, theta_thr):
     "Checks if two lines are simillar in img i.e. they are same line"
     if (abs(theta1 - theta2) <= theta_thr) and (abs(rho1 - rho2) <= rho_thr):
@@ -433,24 +291,133 @@ def deleteSimillarLines(rhos, thetas, rho_thr, theta_thr):
         if not deleted[i]:
             final_thetas.append(thetas[i])
             final_rhos.append(rhos[i])
-    print(deleted)        
     return final_rhos, final_thetas
+
+#/ ---------------------------------------- MAIN ---------------------------------------------- /#
+
+img1 = cv2.imread('./im01.jpg', cv2.IMREAD_COLOR)
+img2 = cv2.imread('./im02.jpg', cv2.IMREAD_COLOR)
+
+img1_edges = cv2.Canny(img1, 400, 500)
+img2_edges = cv2.Canny(img2, 400, 500)
+
+# threshold for converting edges to binary
+bin_thr = 10
+img2bin(img1_edges, bin_thr)
+img2bin(img2_edges, bin_thr)
+
+cv2.imwrite('res01.jpg', img1_edges)
+cv2.imwrite('res02.jpg', img2_edges)
+
+M1, N1 = img1_edges.shape
+M2, N2 = img2_edges.shape
+
+angle_num = 400
+len_num = 400
+hough_thr = 1e-2
+
+print("Finding hough space representation ...")
+print("Img1: ")
+voting_mat1, len_angle_spc1 = houghTran(img1_edges, len_num, angle_num, hough_thr)
+print("Img2: ")
+voting_mat2, len_angle_spc2 = houghTran(img2_edges, len_num, angle_num, hough_thr)
+print("Hough transform finding is finished")
+
+print("Saving hough space img ...")
+hough_space1 = utl.scaleIntensities(voting_mat1)
+cv2.imwrite('res03-hough-space.jpg', hough_space1)
+hough_space2 = utl.scaleIntensities(voting_mat2)
+cv2.imwrite('res04-hough-space.jpg', hough_space2)
+
+#np.save('voting1.npy', voting_mat1)
+#np.save('space1.npy', len_angle_spc1)
+
+#np.save('voting2.npy', voting_mat2)
+#np.save('space2.npy', len_angle_spc2)
+
+#voting_mat1 = np.load('voting1.npy')
+#len_angle_spc1 = np.load('space1.npy')
+
+#voting_mat2 = np.load('voting2.npy')
+#len_angle_spc2 = np.load('space2.npy')
+
+print("Drawing found lines in images and saving ...")
+max_indices1 = utl.findLocalMax(voting_mat1, 0.47 * np.amax(voting_mat1), 0.1)
+max_indices2 = utl.findLocalMax(voting_mat2, 0.47 * np.amax(voting_mat2), 0.1)
+
+#print(max_indices.shape)
+rhos1 = max_indices1[0, :]
+angles1 = max_indices1[1, :]
+
+rhos2 = max_indices2[0, :]
+angles2 = max_indices2[1, :]
+#print(angles)
+
+img1_raw_lines = lineDrawer(img1, len_angle_spc1[rhos1, angles1, 0], len_angle_spc1[rhos1, angles1, 1], 2)
+cv2.imwrite('res05-lines.jpg', img1_raw_lines)
+img2_raw_lines = lineDrawer(img2, len_angle_spc2[rhos2, angles2, 0], len_angle_spc2[rhos2, angles2, 1], 2)
+cv2.imwrite('res06-lines.jpg', img2_raw_lines)
+
+print("Finding distinct lines ...")
+# threshold for angles to be considered as one line
+common_lines = angle_num / 20
+
+distinct_angles1, angles_appear1 = findDistinctAngles(angles1, common_lines)
+distinct_angles2, angles_appear2 = findDistinctAngles(angles2, common_lines)
+
+# how many choices of threshold is available for repeatness of lines
+possible_choices = 4
+
+
+angle_thr_ind1 = np.unravel_index(np.argsort(angles_appear1, axis=None)[-possible_choices:], 
+                                 len(angles_appear1))[0][0]
+app_thr1 = angles_appear1[angle_thr_ind1]
+
+angle_thr_ind2 = np.unravel_index(np.argsort(angles_appear2, axis=None)[-possible_choices:], 
+                                 len(angles_appear2))[0][0]
+app_thr2 = angles_appear2[angle_thr_ind2]
+
+
+rhos1, thetas1 = findParallelLines(max_indices1, distinct_angles1, 
+                                   angles_appear1, common_lines, app_thr1, len_angle_spc1)
+
+rhos2, thetas2 = findParallelLines(max_indices2, distinct_angles2, 
+                                   angles_appear2, common_lines, app_thr2, len_angle_spc2)
+
+print("Deleting lines that don't pass through chess area ...")
+img_hsv1 = cv2.cvtColor(img1, cv2.COLOR_BGR2HSV)
+img_vel1 = img_hsv1[:, :, -1]
+
+img_hsv2 = cv2.cvtColor(img2, cv2.COLOR_BGR2HSV)
+img_vel2 = img_hsv2[:, :, -1]
+
+# thresholds to check if a line passes through chess area
+line_len = 15
+neigh_num = 15
+
+chess_square_thr1 = calMaxColorThreshold(img_vel1, int(1.6*(line_len + neigh_num)))
+chess_square_thr2 = calMaxColorThreshold(img_vel2, int(1.6*(line_len + neigh_num)))
+
+rhos1, thetas1 = passesChessArea(img_vel1, rhos1, thetas1, line_len, 
+                                 neigh_num, chess_square_thr1)
+rhos2, thetas2 = passesChessArea(img_vel2, rhos2, thetas2, line_len, 
+                                 neigh_num, chess_square_thr2)
 
 
 final_rhos1, final_thetas1 = deleteSimillarLines(rhos1, thetas1, 0.05, 0.05)
 final_rhos2, final_thetas2 = deleteSimillarLines(rhos2, thetas2, 0.05, 0.05)
 
-
+print("Drawing final lines in images and saving ...")
 img_m1 = lineDrawer(img1, final_rhos1, final_thetas1, 2)
 img_m2 = lineDrawer(img2, final_rhos2, final_thetas2, 2)
 
-cv2.imwrite('lines-found1.jpg', img_m1)
-cv2.imwrite('lines-found2.jpg', img_m2)
-"""
+cv2.imwrite('res07-chess.jpg', img_m1)
+cv2.imwrite('res08-chess.jpg', img_m2)
+
+print("Finding intersections and drawing them ...")
 img_dots1 = drawIntersectionPoints(img1, final_rhos1, final_thetas1)
 img_dots2 = drawIntersectionPoints(img2, final_rhos2, final_thetas2)
 
-cv2.imwrite('dots-found1.jpg', img_dots1)
-cv2.imwrite('dots-found2.jpg', img_dots2)
-"""
+cv2.imwrite('res09-corners.jpg', img_dots1)
+cv2.imwrite('res10-corners.jpg', img_dots2)
 print("Done!")     
