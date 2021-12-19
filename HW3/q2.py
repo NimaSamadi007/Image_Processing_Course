@@ -78,7 +78,7 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
 
         mask_template = np.ones(patch.shape, dtype=np.uint8)
         mask_template[x_thr:, y_thr:, :] = np.zeros((M_p-x_thr, N_p-y_thr, 3), dtype=np.uint8)
-        
+
         matching_result = cv2.matchTemplate(tex, patch, cv2.TM_SQDIFF_NORMED, mask=mask_template)
         matching_indices = np.unravel_index(np.argsort(matching_result, axis=None)[0:rand_sel], 
                                                        matching_result.shape)
@@ -111,11 +111,6 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
         for i in range(M_p):
             mat_path_y[i, path_y[i, 0]] = 1
 
-        repr = np.zeros((M_p, N_p, 3), dtype=int)
-        repr[:, :, 0] = mat_path_x
-        repr[:, :, 2] = mat_path_y
-        repr *= 255
-        
         # mat_final showes boundries of patches
         tmp_mat = mat_path_x[0:x_thr, 0:y_thr] & mat_path_y[0:x_thr, 0:y_thr]
         common_points = np.nonzero(tmp_mat == 1)
@@ -163,8 +158,7 @@ def updateTexture(syn_tex, tex, M_p, N_p, M_i, N_i,
 
 #/ ------------------- MAIN --------------- /#
 
-img_index = 13
-texture = cv2.imread('./Textures/texture{}.jpg'.format(img_index), cv2.IMREAD_COLOR)
+texture = cv2.imread('./texture06.jpg', cv2.IMREAD_COLOR)
 print("Image loaded successfully, starting algorithm ...")
 # PARAMETERS:
 
@@ -216,6 +210,6 @@ for i in range((M_i - M_p) // (M_p - x_thr) + 1):
             updateTexture(syn_texture, texture, M_p, N_p,
                         M_i, N_i, x_start, x_end, y_start, y_end,
                         x_thr, y_thr, random_select)
-            
-cv2.imwrite('texture{}.jpg'.format(img_index), syn_texture)
+
+cv2.imwrite('res14.jpg', syn_texture)
 print("Done!")

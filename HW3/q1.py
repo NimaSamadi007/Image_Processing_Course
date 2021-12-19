@@ -126,7 +126,7 @@ def findDistinctAngles(angles, common_lines):
     distinct_angles = []
     angles_appear = []
 
-    distinct_angles.append(angles1[0])
+    distinct_angles.append(angles[0])
     angles_appear.append(1)
 
     for i in range(1, len(angles)):
@@ -292,7 +292,6 @@ def deleteSimillarLines(rhos, thetas, rho_thr, theta_thr):
             final_thetas.append(thetas[i])
             final_rhos.append(rhos[i])
     return final_rhos, final_thetas
-
 #/ ---------------------------------------- MAIN ---------------------------------------------- /#
 
 img1 = cv2.imread('./im01.jpg', cv2.IMREAD_COLOR)
@@ -329,29 +328,15 @@ cv2.imwrite('res03-hough-space.jpg', hough_space1)
 hough_space2 = utl.scaleIntensities(voting_mat2)
 cv2.imwrite('res04-hough-space.jpg', hough_space2)
 
-#np.save('voting1.npy', voting_mat1)
-#np.save('space1.npy', len_angle_spc1)
-
-#np.save('voting2.npy', voting_mat2)
-#np.save('space2.npy', len_angle_spc2)
-
-#voting_mat1 = np.load('voting1.npy')
-#len_angle_spc1 = np.load('space1.npy')
-
-#voting_mat2 = np.load('voting2.npy')
-#len_angle_spc2 = np.load('space2.npy')
-
 print("Drawing found lines in images and saving ...")
 max_indices1 = utl.findLocalMax(voting_mat1, 0.47 * np.amax(voting_mat1), 0.1)
 max_indices2 = utl.findLocalMax(voting_mat2, 0.47 * np.amax(voting_mat2), 0.1)
 
-#print(max_indices.shape)
 rhos1 = max_indices1[0, :]
 angles1 = max_indices1[1, :]
 
 rhos2 = max_indices2[0, :]
 angles2 = max_indices2[1, :]
-#print(angles)
 
 img1_raw_lines = lineDrawer(img1, len_angle_spc1[rhos1, angles1, 0], len_angle_spc1[rhos1, angles1, 1], 2)
 cv2.imwrite('res05-lines.jpg', img1_raw_lines)
@@ -367,7 +352,6 @@ distinct_angles2, angles_appear2 = findDistinctAngles(angles2, common_lines)
 
 # how many choices of threshold is available for repeatness of lines
 possible_choices = 4
-
 
 angle_thr_ind1 = np.unravel_index(np.argsort(angles_appear1, axis=None)[-possible_choices:], 
                                  len(angles_appear1))[0][0]
@@ -395,8 +379,8 @@ img_vel2 = img_hsv2[:, :, -1]
 line_len = 15
 neigh_num = 15
 
-chess_square_thr1 = calMaxColorThreshold(img_vel1, int(1.6*(line_len + neigh_num)))
-chess_square_thr2 = calMaxColorThreshold(img_vel2, int(1.6*(line_len + neigh_num)))
+chess_square_thr1 = calMaxColorThreshold(img_vel1, int(1.7*(line_len + neigh_num)))
+chess_square_thr2 = calMaxColorThreshold(img_vel2, int(1.7*(line_len + neigh_num)))
 
 rhos1, thetas1 = passesChessArea(img_vel1, rhos1, thetas1, line_len, 
                                  neigh_num, chess_square_thr1)
