@@ -79,7 +79,7 @@ def convertToXY(rho, theta, M, N):
         # second quarter
         pt1 = np.array([(rho-sin_theta) / cos_theta, 1])
         pt2 = np.array([-1, (rho+cos_theta) / sin_theta])
-        
+ 
     else:
         print("Not found!")        
 
@@ -329,8 +329,8 @@ hough_space2 = utl.scaleIntensities(voting_mat2)
 cv2.imwrite('res04-hough-space.jpg', hough_space2)
 
 print("Drawing found lines in images and saving ...")
-max_indices1 = utl.findLocalMax(voting_mat1, 0.47 * np.amax(voting_mat1), 0.1)
-max_indices2 = utl.findLocalMax(voting_mat2, 0.47 * np.amax(voting_mat2), 0.1)
+max_indices1 = utl.findLocalMax(voting_mat1, 0.47 * np.amax(voting_mat1), 0.05)
+max_indices2 = utl.findLocalMax(voting_mat2, 0.47 * np.amax(voting_mat2), 0.05)
 
 rhos1 = max_indices1[0, :]
 angles1 = max_indices1[1, :]

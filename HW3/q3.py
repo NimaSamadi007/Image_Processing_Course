@@ -2,11 +2,10 @@ import numpy as np
 import cv2 
 import utils as utl
 
-
 #------------------------ FUNCTIONS -------------------------- #
 def removeHolesFromResult(match_result, hole_indices, extra_indices):
     "instead of holes in matching result, fills with 'inf' value to avoid selecting them"
-    "hole_indices: dictionary of holes, each in the format of [left, right, top, bottom]"
+    "hole_indices: dictionary of holes, each in the format of [top, bottom, left, right]"
     "extra_indices: other places that I ignore to enhance performance"
     M, N = match_result.shape
     for i in range(len(hole_indices)):
@@ -123,10 +122,14 @@ def updateTexture(syn_tex, tex, M_p, N_p, x_s, y_s, x_thr, y_thr,
         if not flag:
             syn_tex[x_s:x_s+M_p, y_s+j] = patch[:, j]
 
-def runQ3(img_name, holes, extra_indices, x_thr, y_thr, M_p, N_p, random_select):
+def runQ3(img_name, img_hole_name, holes, extra_indices, x_thr, y_thr, M_p, N_p, random_select):
     "runs complete algorithm for each image"
     img = cv2.imread(img_name, cv2.IMREAD_COLOR)
     print("Running algorithm for {}".format(img_name))
+    # put holes in img:
+    for i in range(len(holes)):
+        img[holes[i][0]:holes[i][1], holes[i][2]:holes[i][3], :] = 0
+    cv2.imwrite(img_hole_name, img)
     for k in range(len(holes)):
     # hole to be filled
         img_hole = np.copy(img[holes[k][0]-M_p:holes[k][1]+M_p, holes[k][2]-N_p: holes[k][3]+N_p, :])
@@ -162,7 +165,7 @@ y_thr = 10
 M_p, N_p = 40, 40
 random_select = 1
 
-img_filled = runQ3('im03-hole.jpg', holes, extra_indices, x_thr, y_thr, M_p, N_p, random_select)
+img_filled = runQ3('im03.jpg', 'im03-hole.jpg', holes, extra_indices, x_thr, y_thr, M_p, N_p, random_select)
 cv2.imwrite('res15.jpg', img_filled)
 
 #im04 holes border:
@@ -174,5 +177,5 @@ y_thr = 25
 M_p, N_p = 100, 100
 random_select = 5
 
-img_filled = runQ3('im04-hole.jpg', holes, extra_indices, x_thr, y_thr, M_p, N_p, random_select)
+img_filled = runQ3('im04.jpg', 'im04-hole.jpg', holes, extra_indices, x_thr, y_thr, M_p, N_p, random_select)
 cv2.imwrite('res16.jpg', img_filled)
