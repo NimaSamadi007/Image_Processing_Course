@@ -17,3 +17,5 @@ HW3/*.npy
 HW3/texture*
 HW3/Textures/*
 HW3/Report
+HW4/__pycache__
+HW4/Report
