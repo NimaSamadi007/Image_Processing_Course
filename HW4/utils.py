@@ -231,7 +231,6 @@ def findLocalMax(mat, level_thr, noise_power):
                 x_max.append(i)
                 y_max.append(j)
     return np.array([x_max, y_max])
-    
-    
+        
     
     
