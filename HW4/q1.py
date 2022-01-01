@@ -66,7 +66,7 @@ def plotter(data_dict, cluster_centers, iter_val, K):
                     marker='+', c='k', s=300)
         plt.title("Labeling at iteration {}".format(iter_val))
 
-    plt.savefig('{}.png'.format(iter_val))
+    #plt.savefig('{}.png'.format(iter_val))
 
 #------------------------- MAIN ---------------------------#
 # reading data points
@@ -77,8 +77,8 @@ N = data.shape[0]
 # plotting data points
 plt.figure()
 plt.scatter(data[:, 0], data[:, 1], s=10)
-plt.savefig('0.png')
+#plt.savefig('0.png')
 
-K = 5
+K = 2
 KMeanClustering(data, K, N, 20)
-#plt.show()
+plt.show()
