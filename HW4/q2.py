@@ -13,7 +13,7 @@ def isExist(arr, val, thr):
     return -1
 #---------------------------- MAIN -----------------------#
 img = cv2.imread('./park.jpg', cv2.IMREAD_COLOR)
-img_resized = cv2.resize(img, None, fx=0.1, fy=0.1, interpolation=cv2.INTER_AREA)
+img_resized = cv2.resize(img, None, fx=0.2, fy=0.2, interpolation=cv2.INTER_AREA)
 
 #img_resized = cv2.cvtColor(img_resized, cv2.COLOR_RGB2Luv)
 
@@ -21,8 +21,8 @@ M, N,_ = img_resized.shape
 
 equivalent_color = (-1)*np.ones((M, N), dtype=np.float64)
 
-radius = 10
-color_thr = 10
+radius = 15
+color_thr = radius ** (0.5)
 
 # distinct color found
 distinct_color = []
@@ -50,7 +50,7 @@ for i in range(M):
             
             diff = np.sum((new_point.astype(np.float64) - current_point.astype(np.float64))**2)
             #print(diff)
-            if diff ** (0.5) <= 0.5:
+            if diff ** (0.5) <= 0.3:
                 # check if it is a distinct color or not
                 all_indices = np.array([all_x_indices, all_y_indices]).T
                 all_indices = list(set(map(tuple, all_indices)))
@@ -68,19 +68,27 @@ for i in range(M):
             else:
                 current_point = np.copy(new_point)
         #print("----------------")
-#%%
+
+
 print(len(distinct_color))
-img = cv2.imread('./park.jpg', cv2.IMREAD_COLOR)
-img_resized = cv2.resize(img, None, fx=0.1, fy=0.1, interpolation=cv2.INTER_AREA)
+#img = cv2.imread('./park.jpg', cv2.IMREAD_COLOR)
+#img_resized = cv2.resize(img, None, fx=0.2, fy=0.2, interpolation=cv2.INTER_AREA)
+#img_resized = img_resized.astype(np.float64)
 # assign average color
 for i in range(len(distinct_color)):
 #for i in range(1):
     indices = np.nonzero(equivalent_color == i)
     #print(img_resized[indices])
-    #print(np.sum(img_resized[indices], axis=0) / len(indices[0]))
+    #print("For {}".format(i))
+    #print(indices)
+    #print(len(indices[0]))
+    #print(len(indices[0]))
+    #print(np.sum(img_resized[indices], axis=0))
+    #print(len(indices[0]))
     img_resized[indices] = np.sum(img_resized[indices], axis=0) / len(indices[0])
     #img_resized[indices] = (i/len(distinct_color))*255
     #print(img_resized[indices])
+    #print("-----------------------------")
     
 cv2.imwrite('./test.jpg', img_resized.astype(np.uint8))
 
