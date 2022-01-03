@@ -43,7 +43,7 @@ def drawPoints(img, centers):
         cv2.circle(img_copy, (centers[1, i], centers[0, i]), 15, (0, 0, 255), -1)
     return img_copy
 
-def purtubCenters(centers, img_grad):
+def purturbCenters(centers, img_grad):
     "Purturbs centers in a neighborhood of size (5, 5)"
     for i in range(centers_list.shape[1]):
         grad_sec = img_grad[centers_list[0, i]-2:centers_list[0, i]+3, 
@@ -59,23 +59,47 @@ M, N, _ = img.shape
 img_grad = calImageGradient(img)
 
 # number of points
-K = 64
+K = 256
+Sx = int(M / (K**(0.5)+1))
+Sy = int(N / (K**(0.5)+1))
 # step parameter - make grid of rectangle size
 centers_list = makeListOfCenters(K)
 # purturb center of segments in 5 * 5 square based on image gradients
-purtubCenters(centers_list, img_grad)
+purturbCenters(centers_list, img_grad)
 
+img_lab = cv2.cvtColor(img, cv2.COLOR_RGB2Lab).astype(np.float64)
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+#for i in range(M):
+#    for j in range(N):
+alpha = 10
+      
+for i in range(M):
+    print("At row {}".format(i))
+    for j in range(N):        
+        distance = np.abs(centers_list - np.array([i, j]).reshape(2, 1))
+        indices = np.nonzero( (distance[0, :] <= Sx) & (distance[1, :] <= Sy) )
+        if not len(indices[0]):
+            center_index = np.argmin(distance[0, :]**2 + distance[1, :]**2)
+            img[i, j, :] = img[centers_list[0, center_index], 
+                               centers_list[1, center_index], :]
+            #print(i, j)
+            #print(indices)
+        else:
+            #print(indices)        
+            x_centers = centers_list[0, indices[0]]
+            y_centers = centers_list[1, indices[0]]    
+            #print(x_centers)
+            #print(y_centers)
+            
+            d_xy = (x_centers - i)**2 + (y_centers - j)**2
+            #print(d_xy)
+            d_lab = np.sum((img_lab[x_centers, y_centers, :] - img_lab[i, j, :])**2, axis=1)
+            #print(d_lab)
+            D = d_xy + alpha * d_lab
+                
+            #print(D)
+            corr_center_index = indices[0][np.argmin(D)]
+            img[i, j, :] = img[centers_list[0, corr_center_index], 
+                               centers_list[1, corr_center_index], :]
+
+cv2.imwrite('slic-res.jpg', img)
