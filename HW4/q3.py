@@ -52,6 +52,21 @@ def purturbCenters(centers, img_grad):
         #print(min_index)
         centers_list[0, i] += (min_index[0] - 2)
         centers_list[1, i] += (min_index[1] - 2)
+
+def drawBoundries(img, segments, K):
+    "Draws segments boundry in img"
+    kernel = np.ones((3, 3), np.uint8)
+    boundry_img = np.copy(img)    
+    img_bin = np.zeros((M, N), np.uint8)
+    for i in range(K):
+        print("Drawing boundry for segment {}".format(i))
+        img_bin[segments == i] = 255
+        segment_boundry = cv2.morphologyEx(img_bin, cv2.MORPH_GRADIENT, kernel)
+        boundry_img[segment_boundry == 255] = 0 
+        img_bin[:, :] = 0    
+    
+    return boundry_img
+
 #---------------------------------- MAIN ------------------------------#
 img = cv2.imread('./slic.jpg', cv2.IMREAD_COLOR)
 M, N, _ = img.shape
@@ -59,7 +74,7 @@ M, N, _ = img.shape
 img_grad = calImageGradient(img)
 
 # number of points
-K = 256
+K = 1024
 Sx = int(M / (K**(0.5)+1))
 Sy = int(N / (K**(0.5)+1))
 # step parameter - make grid of rectangle size
@@ -69,9 +84,11 @@ purturbCenters(centers_list, img_grad)
 
 img_lab = cv2.cvtColor(img, cv2.COLOR_RGB2Lab).astype(np.float64)
 
-#for i in range(M):
-#    for j in range(N):
-alpha = 10
+# relative importance factor
+alpha = 5
+
+# shows img segments in different color
+img_segments = np.zeros((M, N), np.int32)
       
 for i in range(M):
     print("At row {}".format(i))
@@ -97,9 +114,16 @@ for i in range(M):
             #print(d_lab)
             D = d_xy + alpha * d_lab
                 
-            #print(D)
             corr_center_index = indices[0][np.argmin(D)]
-            img[i, j, :] = img[centers_list[0, corr_center_index], 
-                               centers_list[1, corr_center_index], :]
+            img_segments[i, j] = corr_center_index
 
-cv2.imwrite('slic-res.jpg', img)
+fin_img = drawBoundries(img, img_segments, K)
+cv2.imwrite('fin-img.jpg', fin_img)
+    
+    
+    
+    
+    
+    
+    
+    
