@@ -232,7 +232,7 @@ def findLocalMax(mat, level_thr, noise_power):
                 y_max.append(j)
     return np.array([x_max, y_max])
         
-def calImageGradient(img, sigma):
+def calImageGradient(img, sigma, mode='Sobel'):
     """
     Calculates image gradient, first converts image to grayscale
     and blures it to reduce noise
@@ -241,8 +241,14 @@ def calImageGradient(img, sigma):
 
     #apply gaussian filter to reduce noise
     img_gray = cv2.GaussianBlur(img_gray, ksize=(3, 3), sigmaX=sigma, borderType=cv2.BORDER_CONSTANT)
-    d_x = cv2.Sobel(src=img_gray, ddepth=-1, dx=1, dy=0, ksize=3, borderType=cv2.BORDER_CONSTANT)
-    d_y = cv2.Sobel(src=img_gray, ddepth=-1, dx=0, dy=1, ksize=3, borderType=cv2.BORDER_CONSTANT)
+    if mode == 'Sobel':
+        d_x = cv2.Sobel(src=img_gray, ddepth=-1, dx=1, dy=0, ksize=3, borderType=cv2.BORDER_CONSTANT)
+        d_y = cv2.Sobel(src=img_gray, ddepth=-1, dx=0, dy=1, ksize=3, borderType=cv2.BORDER_CONSTANT)
+    elif mode == 'Scharr':
+        d_x = cv2.Scharr(src=img_gray, ddepth=-1, dx=1, dy=0, borderType=cv2.BORDER_CONSTANT)
+        d_y = cv2.Scharr(src=img_gray, ddepth=-1, dx=0, dy=1, borderType=cv2.BORDER_CONSTANT)    
+    else:
+        raise ValueError("Unknonwn mode {}".format(mode))
     d_x = d_x.astype(np.float64)
     d_y = d_x.astype(np.float64)
     
