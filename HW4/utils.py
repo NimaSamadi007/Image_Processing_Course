@@ -232,5 +232,21 @@ def findLocalMax(mat, level_thr, noise_power):
                 y_max.append(j)
     return np.array([x_max, y_max])
         
+def calImageGradient(img, sigma):
+    """
+    Calculates image gradient, first converts image to grayscale
+    and blures it to reduce noise
+    """
+    img_gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+
+    #apply gaussian filter to reduce noise
+    img_gray = cv2.GaussianBlur(img_gray, ksize=(3, 3), sigmaX=sigma, borderType=cv2.BORDER_CONSTANT)
+    d_x = cv2.Sobel(src=img_gray, ddepth=-1, dx=1, dy=0, ksize=3, borderType=cv2.BORDER_CONSTANT)
+    d_y = cv2.Sobel(src=img_gray, ddepth=-1, dx=0, dy=1, ksize=3, borderType=cv2.BORDER_CONSTANT)
+    d_x = d_x.astype(np.float64)
+    d_y = d_x.astype(np.float64)
     
+    grad_mat = np.sqrt(d_x ** 2 + d_y ** 2)
+    return grad_mat.astype(np.float64)
+
     

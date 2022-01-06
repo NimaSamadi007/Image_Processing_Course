@@ -3,22 +3,6 @@ import cv2
 import matplotlib.pyplot as plt
 import utils as utl
 
-def calImageGradient(img):
-    """
-    Calculates image gradient, first converts image to grayscale
-    and blures it to reduce noise
-    """
-    img_gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-
-    #apply gaussian filter to reduce noise
-    img_gray = cv2.GaussianBlur(img_gray, ksize=(3, 3), sigmaX=3, borderType=cv2.BORDER_CONSTANT)
-    d_x = cv2.Sobel(src=img_gray, ddepth=-1, dx=1, dy=0, ksize=3, borderType=cv2.BORDER_CONSTANT)
-    d_y = cv2.Sobel(src=img_gray, ddepth=-1, dx=0, dy=1, ksize=3, borderType=cv2.BORDER_CONSTANT)
-
-    grad_mat = np.sqrt(d_x ** 2 + d_y ** 2)
-    
-    return grad_mat.astype(np.float64)
-
 def makeListOfCenters(K):
     "Makes an empty dictionary which each key shows corresponding labels"
     centers_list = np.zeros((2, K), dtype=int)
@@ -71,10 +55,10 @@ def drawBoundries(img, segments, K):
 img = cv2.imread('./slic.jpg', cv2.IMREAD_COLOR)
 M, N, _ = img.shape
 
-img_grad = calImageGradient(img)
+img_grad = utl.calImageGradient(img, 3)
 
 # number of points
-K = 1024
+K = 256
 Sx = int(M / (K**(0.5)+1))
 Sy = int(N / (K**(0.5)+1))
 # step parameter - make grid of rectangle size
@@ -85,7 +69,7 @@ purturbCenters(centers_list, img_grad)
 img_lab = cv2.cvtColor(img, cv2.COLOR_RGB2Lab).astype(np.float64)
 
 # relative importance factor
-alpha = 5
+alpha = 2
 
 # shows img segments in different color
 img_segments = np.zeros((M, N), np.int32)
