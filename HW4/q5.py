@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
 import utils as utl
 
 
@@ -12,6 +11,7 @@ def drawClosedContour(img, points, thic):
     points_cv = np.stack([points[:, 1], points[:, 0]]).T
     for i in range(N):
         cv2.line(img_cop, points_cv[i], points_cv[(i+1) % N], (0, 255, 0), thic)
+        # cv2.circle(img_cop, (points_cv[i, 0], points_cv[i, 1]), 5, (0, 255, 0), -1)
     return img_cop
 
 def calAverageDistance(points):
@@ -30,36 +30,56 @@ def calEnergy(img_grad, current_point, next_point, d_avg, alpha, gamma):
     energy = (-gamma) * (gradient**2) + alpha * ((distance-d_avg)**2)
     return energy
 
+def addMiddlePoints(points):
+    "Adds points in the middle of give points"
+    N = points.shape[0]
+    new_points = np.zeros((N*2, 2), dtype=np.int64)
+    for i in range(2*N):
+        if i % 2 == 0:
+            new_points[i] = points[i // 2]
+        else:
+            if i == 2*N - 1:
+                new_points[i, :] = (points[(i-1)//2] + points[0]) // 2
+            else:
+                new_points[i, :] = (points[(i-1)//2] + points[(i+1)//2]) // 2
+    return new_points
 #---------------------------- MAIN ----------------------------------#
-#img = cv2.imread('1.jpeg', cv2.IMREAD_COLOR)
+# img = cv2.imread('Untitled.png', cv2.IMREAD_COLOR)
 img = cv2.imread('tasbih.jpg', cv2.IMREAD_COLOR)
 
 M_i, N_i, _ = img.shape
 
 # initial contours points
-initial_points = np.array([[281, 232], [362, 218], [388, 203], [425, 192], 
-                           [451, 178], [489, 173], [521, 184], [534, 208],
-                           [532, 231], [528, 254], [539, 280], [556, 300], 
-                           [579, 305], [612, 310], [656, 306], [702, 301],
-                           [736, 291], [746, 289], [791, 290], [830, 297],
-                           [860, 305], [901, 308], [922, 328], [930, 369],
-                           [906, 382], [868, 386], [836, 389], [812, 391],
-                           [779, 390], [748, 391], [712, 396], [681, 404],
-                           [651, 417], [629, 437], [612, 453], [592, 472],
-                           [562, 490], [537, 507], [498, 513], [463, 504],
-                           [430, 500], [431, 538], [422, 582], [385, 602],
-                           [334, 606], [297, 578], [286, 544], [281, 502],
-                           [282, 461], [295, 431], [310, 405], [304, 376],
-                           [274, 381], [235, 374], [209, 351], [205, 316],
-                           [220, 286], [242, 268], [265, 250]])
+# initial_points = np.array([[309, 221], [334, 198], [363, 176], [398, 169],
+#                             [423, 193], [435, 216], [465, 223], [503, 225], 
+#                             [526, 244], [515, 267], [505, 295], [510, 321],
+#                             [522, 353], [503, 381], [465, 386], [437, 401],
+#                             [415, 421], [380, 437], [344, 416], [320, 395],
+#                             [286, 380], [254, 373], [240, 341], [238, 310],
+#                             [236, 278], [241, 238], [274, 220]])
 
+initial_points = np.array([[233, 261], [270, 242], [315, 230], [368, 223], 
+                           [405, 196], [445, 176], [494, 168], [524, 186], 
+                           [533, 222], [533, 254], [554, 282], [585, 299], 
+                           [630, 304], [676, 295], [730, 286], [783, 286], 
+                           [823, 294], [872, 300], [918, 320], [957, 341], 
+                           [925, 371], [875, 384], [824, 393], [769, 390], 
+                           [719, 392], [676, 394], [645, 403], [622, 426], 
+                           [603, 460], [575, 485], [534, 511], [481, 520], 
+                           [451, 507], [423, 489], [418, 511], [426, 550], 
+                           [420, 582], [390, 604], [347, 605], [309, 583], 
+                           [291, 547], [285, 506], [291, 470], [300, 437], 
+                           [309, 404], [314, 374], [277, 382], [216, 353], 
+                           [203, 322], [210, 289]])
+
+initial_points = addMiddlePoints(initial_points)
 initial_points = np.stack([initial_points[:, 1], initial_points[:, 0]]).T
 
 #img_con = drawClosedContour(img, initial_points, 1)
 #utl.showImg(img_con, 0.5)
 
 # window size
-K = 3
+K = 5
 # number of states
 M = K**2
 # number of points on contour
@@ -70,16 +90,15 @@ points = initial_points[0:N]
 
 
 # table for viterbi algorithm
-table = np.zeros((M, N), dtype=np.float64)
+table = np.zeros((M, M, N), dtype=np.float64)
 # shows predecessor of each state
-path = np.zeros((M, N), dtype=np.int64)
+path = np.zeros((M, M, N), dtype=np.int64)
 
-alpha = 0.1
-gamma = 0.3
+alpha = 2
+gamma = 1
 
 img_grad = utl.calImageGradient(img, 3, 'Scharr')
-
-#utl.showImg(utl.scaleIntensities(img_grad), 0.5)
+#utl.showImg(img_grad, 0.5)
 
 
 all_energy = np.zeros(M, dtype=np.float64)
@@ -87,43 +106,58 @@ all_energy = np.zeros(M, dtype=np.float64)
 for step in range(50):
     # average of length between points
     d_avg = calAverageDistance(points)
-    for j in range(1, N):
-    # j for iterating over each coloumn
-        for k in range(M):
-        # k for iterating on every row in each coloumn
-            state_vector = np.array([k//K, k%K], dtype=np.int64)        
-            next_point = points[j] + state_vector - (K-1)//2
-
-            # next_point[0] %= M_i
-            # next_point[1] %= N_i
-
-            all_energy[:] = 0
-            # consider all M options of last coloumn
-            for t in range(M):
-                state_vector = np.array([t//K, t%K], dtype=np.int64)        
-                current_point = points[j-1] + state_vector - (K-1)//2
-
-                # current_point[0] %= M_i
-                # current_point[1] %= N_i
-                
-                energy = calEnergy(img_grad, current_point, next_point, d_avg, alpha, gamma)
-                all_energy[t] = energy + table[t, j-1]
-            # assign best option
-            best_state = np.argmin(all_energy)
-            path[k, j] = best_state
-            table[k, j] = all_energy[best_state] 
-
-# finding path and updating points:
-    
-    best_state = np.argmin(table[:, -1])
-    for i in range(N-1, -1, -1):
+    table[:, :, :] = 0
+    path[:, :, :] = 0
+    all_energy[:] = 0
+    for i in range(M):
+    # i for iterating over each state of the first point
+        for j in range(1, N):
+        # j for iterating over each coloumn            
+            for k in range(M):
+            # k for iterating on every row in each coloumn
+                state_vector = np.array([k//K, k%K], dtype=np.int64)        
+                next_point = points[j] + state_vector - (K-1)//2
+                if j == 1:
+                    # no need to compare options - last state is the first point
+                    state_vector = np.array([i//K, i%K], dtype=np.int64)        
+                    current_point = points[0] + state_vector - (K-1)//2                        
+                    energy = calEnergy(img_grad, current_point, next_point, d_avg, alpha, gamma)
+                    path[i, k, j] = i
+                    table[i, k, j] = energy                     
+                else:
+                    all_energy[:] = 0
+                    # consider all M options of previous coloumn
+                    for t in range(M):
+                        state_vector = np.array([t//K, t%K], dtype=np.int64)        
+                        current_point = points[j-1] + state_vector - (K-1)//2                        
+                        energy = calEnergy(img_grad, current_point, next_point, d_avg, alpha, gamma)
+                        all_energy[t] = energy + table[i, t, j-1]
+                    
+                    # assign best option
+                    best_state = np.argmin(all_energy)
+                    path[i, k, j] = best_state
+                    table[i, k, j] = all_energy[best_state] 
+        
+        # add E(v_n, v_0) to the last coloumn
+        state_vector = np.array([i//K, i % K], dtype=np.int64)
+        next_point = points[0] + state_vector - (K-1)//2
+        for q in range(M):
+            state_vector = np.array([q//K, q % K], dtype=np.int64)  
+            current_point = points[-1] + state_vector - (K-1)//2
+            table[i, q, -1] += calEnergy(img_grad, current_point, next_point, d_avg, alpha, gamma)
+            
+    # finding path and updating points:
+    min_index = np.argmin(table[:, :, -1])
+    row_table = min_index // M
+    best_state_index = min_index % M
+    best_state = path[row_table, best_state_index, -1]
+    for o in range(N-1, -1, -1):
         state_vector = np.array([best_state//K, best_state % K], dtype=np.int64)  
-        points[i] += state_vector - (K-1)//2
-        best_state = path[best_state, i]
+        points[o] += state_vector - (K-1)//2
+        best_state = path[row_table, best_state, o]
 
     img_con = drawClosedContour(img, points, 1)
     cv2.imwrite('./test/res-{}.jpg'.format(step), img_con)
-    #utl.showImg(img_con, 0.5, 'new points')
     print("going to step {}".format(step))
 print("Done!")
 #%%
