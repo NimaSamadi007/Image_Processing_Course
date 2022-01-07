@@ -55,10 +55,15 @@ def drawBoundries(img, segments, K):
 img = cv2.imread('./slic.jpg', cv2.IMREAD_COLOR)
 M, N, _ = img.shape
 
-img_grad = utl.calImageGradient(img, 3)
+img_grad = utl.calImageGradient(img, 3, 'Scharr')
+# blur image to reduce noises
+
+sigma = 1
+img = cv2.GaussianBlur(img, ksize=(6*sigma+1, 6*sigma+1), 
+                            sigmaX=sigma, borderType=cv2.BORDER_CONSTANT)
 
 # number of points
-K = 256
+K = 1024
 Sx = int(M / (K**(0.5)+1))
 Sy = int(N / (K**(0.5)+1))
 # step parameter - make grid of rectangle size
@@ -83,19 +88,12 @@ for i in range(M):
             center_index = np.argmin(distance[0, :]**2 + distance[1, :]**2)
             img[i, j, :] = img[centers_list[0, center_index], 
                                centers_list[1, center_index], :]
-            #print(i, j)
-            #print(indices)
         else:
-            #print(indices)        
             x_centers = centers_list[0, indices[0]]
             y_centers = centers_list[1, indices[0]]    
-            #print(x_centers)
-            #print(y_centers)
             
             d_xy = (x_centers - i)**2 + (y_centers - j)**2
-            #print(d_xy)
             d_lab = np.sum((img_lab[x_centers, y_centers, :] - img_lab[i, j, :])**2, axis=1)
-            #print(d_lab)
             D = d_xy + alpha * d_lab
                 
             corr_center_index = indices[0][np.argmin(D)]
@@ -103,11 +101,3 @@ for i in range(M):
 
 fin_img = drawBoundries(img, img_segments, K)
 cv2.imwrite('fin-img.jpg', fin_img)
-    
-    
-    
-    
-    
-    
-    
-    

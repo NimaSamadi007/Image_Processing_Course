@@ -61,7 +61,7 @@ img = cv2.imread('tasbih.jpg', cv2.IMREAD_COLOR)
 
 M_i, N_i, _ = img.shape
 
-theta = np.linspace(0, 2*np.pi, 80)
+theta = np.linspace(0, 2*np.pi, 70)
 v_x = np.int64(400 + 250*np.cos(theta))
 v_y = np.int64(450 + 300*np.sin(theta))
 
@@ -101,10 +101,10 @@ table = np.zeros((M, M, N), dtype=np.float64)
 path = np.zeros((M, M, N), dtype=np.int64)
 
 
-alpha = 3
+alpha = 5
 gamma = 1
 coeff = 0.05
-gradient_thr = 20
+gradient_thr = 50
 # sigma = 3
 
 img_grad = utl.calImageGradient(img, 3, 'Scharr')
@@ -191,15 +191,6 @@ for step in range(max_step):
     print("----------------------------")
 print("Done!")
 
-#%%
-x = points[0:10]
-
-y = randomShifter(x)
-
-img_con = drawClosedContour(img, x, 1)
-img_con2 = drawClosedContour(img, y, 1)
-utl.showImg(img_con, 0.5, 't', False)
-utl.showImg(img_con2, 0.5)
 
 
 
