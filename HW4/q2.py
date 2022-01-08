@@ -13,7 +13,7 @@ def isExist(arr, val, thr):
     return -1
 #---------------------------- MAIN -----------------------#
 img = cv2.imread('./park.jpg', cv2.IMREAD_COLOR)
-img_resized = cv2.resize(img, None, fx=0.2, fy=0.2, interpolation=cv2.INTER_AREA)
+img_resized = cv2.resize(img, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
 
 #img_resized = cv2.cvtColor(img_resized, cv2.COLOR_RGB2Luv)
 
@@ -37,7 +37,7 @@ for i in range(M):
 
         all_x_indices = []
         all_y_indices = []
-        #print(j)
+        print(j)
         while 1:        
             distance = (img_resized.astype(np.float64) - current_point.astype(np.float64))**2
             # points that are in a circle
@@ -50,7 +50,7 @@ for i in range(M):
             
             diff = np.sum((new_point.astype(np.float64) - current_point.astype(np.float64))**2)
             #print(diff)
-            if diff ** (0.5) <= 0.3:
+            if diff ** (0.5) <= 1:
                 # check if it is a distinct color or not
                 all_indices = np.array([all_x_indices, all_y_indices]).T
                 all_indices = list(set(map(tuple, all_indices)))
