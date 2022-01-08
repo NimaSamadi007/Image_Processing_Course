@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
 import utils as utl
 
 def makeListOfCenters(K):
@@ -55,15 +54,14 @@ def drawBoundries(img, segments, K):
 img = cv2.imread('./slic.jpg', cv2.IMREAD_COLOR)
 M, N, _ = img.shape
 
-img_grad = utl.calImageGradient(img, 3, 'Scharr')
 # blur image to reduce noises
+img_blured = cv2.GaussianBlur(img, ksize=(3, 3), 
+                            sigmaX=1, borderType=cv2.BORDER_CONSTANT)
 
-sigma = 1
-img = cv2.GaussianBlur(img, ksize=(6*sigma+1, 6*sigma+1), 
-                            sigmaX=sigma, borderType=cv2.BORDER_CONSTANT)
+img_grad = utl.calImageGradient(img_blured, 3, 'Scharr')
 
 # number of points
-K = 1024
+K = 64
 Sx = int(M / (K**(0.5)+1))
 Sy = int(N / (K**(0.5)+1))
 # step parameter - make grid of rectangle size
@@ -71,7 +69,7 @@ centers_list = makeListOfCenters(K)
 # purturb center of segments in 5 * 5 square based on image gradients
 purturbCenters(centers_list, img_grad)
 
-img_lab = cv2.cvtColor(img, cv2.COLOR_RGB2Lab).astype(np.float64)
+img_lab = cv2.cvtColor(img_blured, cv2.COLOR_RGB2Lab).astype(np.float64)
 
 # relative importance factor
 alpha = 2
@@ -86,8 +84,8 @@ for i in range(M):
         indices = np.nonzero( (distance[0, :] <= Sx) & (distance[1, :] <= Sy) )
         if not len(indices[0]):
             center_index = np.argmin(distance[0, :]**2 + distance[1, :]**2)
-            img[i, j, :] = img[centers_list[0, center_index], 
-                               centers_list[1, center_index], :]
+            img_blured[i, j, :] = img_blured[centers_list[0, center_index], 
+                                             centers_list[1, center_index], :]
         else:
             x_centers = centers_list[0, indices[0]]
             y_centers = centers_list[1, indices[0]]    
