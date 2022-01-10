@@ -11,17 +11,16 @@ def isExist(arr, val, thr):
     return -1
 #---------------------------- MAIN -----------------------#
 img = cv2.imread('./park.jpg', cv2.IMREAD_COLOR)
-img_resized = cv2.resize(img, None, fx=0.2, fy=0.2, interpolation=cv2.INTER_AREA)
-img_resized_cop = np.copy(img_resized)
-# img_resized = cv2.GaussianBlur(img_resized, ksize=(5, 5),
-#                                sigmaX=1, borderType=cv2.BORDER_CONSTANT)
+# img = cv2.resize(img, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
+M, N,_ = img.shape
 
-M, N,_ = img_resized.shape
 equivalent_color = (-1)*np.ones((M, N), dtype=np.float64)
 
 radius = 15
-color_thr = radius
-diff_thr = 0.3
+color_thr = 15
+# better to change this to 0.5 to increase the speed
+diff_thr = 1
+# diff_thr = 0.3
 # distinct color found
 distinct_color = []
 
@@ -30,16 +29,16 @@ for i in range(M):
     for j in range(N):
         if equivalent_color[i, j] == -1:
         # this pixel hasn't been filled previously
-            current_point = img_resized[i, j, :]
+            current_point = img[i, j, :]
             all_x_indices = []
             all_y_indices = []
-            # print("At colomn {}".format(j))
+            print("At colomn {}".format(j))
             while 1:
-                distance = (img_resized.astype(np.float64) - current_point.astype(np.float64))**2
+                distance = (img.astype(np.float64) - current_point.astype(np.float64))**2
                 # points that are in a circle
                 indices = np.nonzero(np.sum(distance, axis=2)**(0.5) <= radius)
                                 
-                near_points = img_resized[indices]
+                near_points = img[indices]
                 # new center point
                 new_point = np.sum(near_points, axis=0) / (near_points.shape[0])
                 diff = np.sum((new_point.astype(np.float64) - current_point.astype(np.float64))**2)
@@ -71,9 +70,9 @@ print(len(distinct_color))
 for i in range(len(distinct_color)):
     indices = np.nonzero(equivalent_color == i)
     if len(indices[0]):
-        img_resized_cop[indices] = np.sum(img_resized_cop[indices], axis=0) / len(indices[0])
+        img[indices] = np.sum(img[indices], axis=0) / len(indices[0])
     else:
         print("None was found!")
 
-cv2.imwrite('./res05.jpg', img_resized_cop.astype(np.uint8))
+cv2.imwrite('./res05.jpg', img.astype(np.uint8))
 print("Done!")            
