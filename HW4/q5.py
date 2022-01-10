@@ -56,34 +56,19 @@ def randomShifter(points):
     
     return shifted_points
 #---------------------------- MAIN ----------------------------------#
-# img = cv2.imread('Untitled.png', cv2.IMREAD_COLOR)
 img = cv2.imread('tasbih.jpg', cv2.IMREAD_COLOR)
 
 M_i, N_i, _ = img.shape
 
+# generating points on an eclipse around the tasbih
 theta = np.linspace(0, 2*np.pi, 80)
-v_x = np.int64(400 + 250*np.cos(theta))
-v_y = np.int64(450 + 300*np.sin(theta))
+initial_points = np.stack([400 + 250*np.cos(theta), 450 + 300*np.sin(theta)], dtype=np.int32).T
 
-# initial_points = np.array([[244, 210], [294, 199], [385, 181], [376, 163], 
-#                             [436, 140], [503, 135], [555, 163], [581, 201], 
-#                             [610, 243], [639, 281], [686, 294], [733, 318], 
-#                             [737, 370], [699, 399], [674, 428], [646, 469], 
-#                             [616, 507], [581, 540], [536, 566], [496, 540], 
-#                             [457, 540], [451, 588], [417, 614], [369, 635], 
-#                             [302, 636], [271, 590], [248, 525], [252, 469], 
-#                             [250, 418], [199, 399], [163, 354], [166, 303], 
-#                             [186, 257], [211, 225]])
 
-initial_points = np.stack([v_x, v_y]).T
+img_con = drawClosedContour(img, initial_points, 1)
+utl.showImg(img_con, 0.5)
 
-# initial_points = addMiddlePoints(initial_points)
-
-# initial_points = np.stack([initial_points[:, 1], initial_points[:, 0]]).T
-
-# img_con = drawClosedContour(img, initial_points, 1)
-# utl.showImg(img_con, 0.5)
-
+#%%
 # window size
 K = 3
 # number of states
@@ -93,7 +78,6 @@ N = initial_points.shape[0]
 
 points = initial_points[0:N]
 # viterbi implementation
-
 
 # table for viterbi algorithm
 table = np.zeros((M, M, N), dtype=np.float64)
@@ -105,7 +89,6 @@ alpha = 2
 gamma = 1
 coeff = 0.1
 gradient_thr = 5
-# sigma = 3
 
 img_grad = utl.calImageGradient(img, 3, 'Scharr')
 
@@ -184,10 +167,6 @@ for step in range(max_step):
         for i in range(points.shape[0]):
             if img_grad[points[i, 0], points[i, 1]] <= gradient_thr:
                 points[i] -= distance_with_middle[i].astype(np.int64)
-        #print(np.sum(np.abs(img_grad[points[:, 0], points[:, 1]])))
-    #     break
-    # else:
-    #     step += 1
     print("----------------------------")
 print("Done!")
 

@@ -67,7 +67,7 @@ for q in range(15):
     # erode image to eliminate noises
     erosion_kernel = np.ones((3, 3), dtype=np.uint8)
     eroded_img = cv2.erode(img_gray, erosion_kernel, iterations=3)
-    # dilate eroded image to recover lost points
+    # dilate eroded image to recover lost points - use the same kernel
     dilated_img = cv2.dilate(eroded_img, erosion_kernel, iterations=3)
     
     # apply mask
@@ -88,7 +88,7 @@ for q in range(15):
     votes_matrix[temp_mat == 255] += 1    
     print("---------------")
 
-# now take votes on votes_matrix value and draw final contours    
+# now take vote on votes_matrix value and draw final contours    
 votes_matrix[votes_matrix < vote_thr] = 0
 votes_matrix[votes_matrix >= vote_thr] = 1
 # draw contours
