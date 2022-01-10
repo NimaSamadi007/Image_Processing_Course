@@ -1,7 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-#import cv2
-#import utils as utl
 
 #------------------------- FUNCTIONS ----------------------#
 def readData(path):
@@ -25,48 +23,51 @@ def makeDictOfLabels(K):
     "Makes an empty dictionary which each key shows corresponding labels"
     data_dict = dict()
     for i in range(K):
-        # 0 * number of features
-        data_dict[i] = np.empty((0, 2), dtype=np.float64)
+        # each item is the index of corresponding feature and data
+        data_dict[i] = []
     return data_dict
 
 def findLabel(point, cluster_centers):
     "Returns label of the point, based on cluster centers"
-    distance = np.sum((cluster_centers - point)**2, axis=1)**(0.5)
+    if np.isscalar(point):
+        # point is scalar, so there are 1 element
+        distance = np.abs(cluster_centers - point)
+    else:
+        # more than one element is available, so use eculidan distance
+        distance = np.sum((cluster_centers - point)**2, axis=1)**(0.5)
     return np.argmin(distance)
 
-def KMeanClustering(data, K, N, iters):
+def KMeanClustering(data, features, K, N, iters, img_name):
     "K-mean implementation - iters shows termination condition"
     # random selecting initial points
     index = np.random.choice(np.arange(0, N), K, replace=False)    
     # cluser points based on cluster centers
-    cluster_centers = data[index]
-    
-    iter_val = 0
-    while iter_val < iters:
+    cluster_centers = features[index]
+
+    for _ in range(iters):
         # make data dictionary
         data_dict = makeDictOfLabels(K)
         # assign labels
         for i in range(data.shape[0]):
-            label = findLabel(data[i], cluster_centers)
-            data_dict[label] = np.append(data_dict[label], data[i].reshape(1, 2), axis=0)
-        
-        iter_val += 1
-        # plot points:
-        plotter(data_dict, cluster_centers, iter_val, K)
+            label = findLabel(features[i], cluster_centers)
+            data_dict[label].append(i)        
         # find new cluster centers
         for i in range(K):
-            cluster_centers[i] = np.sum(data_dict[i], axis=0) / (data_dict[i].shape[0])
+            cluster_centers[i] = np.sum(features[data_dict[i]], axis=0) / (features[data_dict[i]].shape[0])
     
-def plotter(data_dict, cluster_centers, iter_val, K):
-    "Plots points according to their labels"
-    plt.figure()
-    for i in range(K):
-        plt.scatter(data_dict[i][:, 0], data_dict[i][:, 1], s=10)
-        plt.scatter(cluster_centers[i, 0], cluster_centers[i, 1], 
-                    marker='+', c='k', s=300)
-        plt.title("Labeling at iteration {}".format(iter_val))
+    plotter(data, data_dict, "Final labels after {} iterations".format(iters), img_name, K)
 
-    #plt.savefig('{}.png'.format(iter_val))
+def plotter(data, data_dict, title, img_name, K):
+    "Plots points according to their labels"
+    plt.figure(figsize=(8,6), dpi=80)
+    for i in range(K):
+        plt.scatter(data[data_dict[i]][:, 0], data[data_dict[i]][:, 1], s=10)
+    plt.grid(True)
+    plt.title(title)
+    plt.xlabel('x component')
+    plt.ylabel('y component')
+        
+    plt.savefig('{}.jpg'.format(img_name))
 
 #------------------------- MAIN ---------------------------#
 # reading data points
@@ -75,10 +76,28 @@ data = readData('./Points.txt')
 N = data.shape[0]
 
 # plotting data points
-plt.figure()
+plt.figure(figsize=(8,6), dpi=80)
 plt.scatter(data[:, 0], data[:, 1], s=10)
-#plt.savefig('0.png')
+plt.grid(True)
+plt.xlabel('x component')
+plt.ylabel('y component')
+plt.title('Data points plot')
+plt.savefig('res01.jpg')
 
+# two cluster
 K = 2
-KMeanClustering(data, K, N, 20)
-plt.show()
+# clustering based on (x, y) features
+features = np.copy(data)
+print('(x, y) clustering ...')
+KMeanClustering(data, features, K, N, 15, 'res02')
+# run one more time
+print('Another (x, y) clustering ...')
+KMeanClustering(data, features, K, N, 15, 'res03')
+
+# clustering based on distance from origin (radius)
+print('Radius clustering ...')
+features = np.sqrt(np.sum(data**2, axis=1))
+KMeanClustering(data, features, K, N, 5, 'res04')
+print('Done!')
+
+
