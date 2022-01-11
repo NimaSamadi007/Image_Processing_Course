@@ -11,7 +11,7 @@ def isExist(arr, val, thr):
     return -1
 #---------------------------- MAIN -----------------------#
 img = cv2.imread('./park.jpg', cv2.IMREAD_COLOR)
-# img = cv2.resize(img, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
+img = cv2.resize(img, None, fx=0.2, fy=0.2, interpolation=cv2.INTER_AREA)
 M, N,_ = img.shape
 
 equivalent_color = (-1)*np.ones((M, N), dtype=np.float64)
@@ -19,7 +19,7 @@ equivalent_color = (-1)*np.ones((M, N), dtype=np.float64)
 radius = 15
 color_thr = 15
 # better to change this to 0.5 to increase the speed
-diff_thr = 1
+diff_thr = 0.3
 # diff_thr = 0.3
 # distinct color found
 distinct_color = []
@@ -32,7 +32,6 @@ for i in range(M):
             current_point = img[i, j, :]
             all_x_indices = []
             all_y_indices = []
-            print("At colomn {}".format(j))
             while 1:
                 distance = (img.astype(np.float64) - current_point.astype(np.float64))**2
                 # points that are in a circle
@@ -74,5 +73,6 @@ for i in range(len(distinct_color)):
     else:
         print("None was found!")
 
+img = cv2.resize(img, None, fx=5, fy=5, interpolation=cv2.INTER_LINEAR)
 cv2.imwrite('./res05.jpg', img.astype(np.uint8))
 print("Done!")            
