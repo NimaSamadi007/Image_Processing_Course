@@ -65,7 +65,6 @@ for i in range(M):
                     current_point = np.copy(new_point)
 
 print("Replacing average color ...")
-print(len(distinct_color))
 for i in range(len(distinct_color)):
     indices = np.nonzero(equivalent_color == i)
     if len(indices[0]):

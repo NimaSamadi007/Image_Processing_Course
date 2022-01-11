@@ -104,15 +104,24 @@ img_blured = cv2.GaussianBlur(img, ksize=(7, 7),
                               sigmaX=2, borderType=cv2.BORDER_CONSTANT)
 img_lab = cv2.cvtColor(img_blured, cv2.COLOR_RGB2Lab).astype(np.float64)
 
-# relative importance factor
-# alpha = 0.02
-# K = 64
-# alpha = 0.05
-# K = 256
-# alpha = 0.1
-# K = 1024
+alpha = 0.02
+K = 64
+img_cop = np.copy(img)
+runSLIC(img_cop, img_lab, img_grad, alpha, K, 'res06')
+
+alpha = 0.05
+K = 256
+img_cop = np.copy(img)
+runSLIC(img_cop, img_lab, img_grad, alpha, K, 'res07')
+
+alpha = 0.1
+K = 1024
+img_cop = np.copy(img)
+runSLIC(img_cop, img_lab, img_grad, alpha, K, 'res08')
+
 alpha = 0.5 
 K = 2048
 img_cop = np.copy(img)
 runSLIC(img_cop, img_lab, img_grad, alpha, K, 'res09')
+
 print("Done!")
