@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 import utils as utl
 
-
 #---------------------------- FUNCTION ------------------------------#
 def drawClosedContour(img, points, thic):
     "Drawes closed contour by connecting lines between two consecutive points"
@@ -10,8 +9,8 @@ def drawClosedContour(img, points, thic):
     N = points.shape[0]
     points_cv = np.stack([points[:, 1], points[:, 0]]).T
     for i in range(N):
-        # cv2.line(img_cop, points_cv[i], points_cv[(i+1) % N], (0, 255, 0), thic)
-        cv2.circle(img_cop, (points_cv[i, 0], points_cv[i, 1]), 5, (0, 255, 0), -1)
+        cv2.line(img_cop, points_cv[i], points_cv[(i+1) % N], (0, 255, 0), thic)
+        # cv2.circle(img_cop, (points_cv[i, 0], points_cv[i, 1]), 5, (0, 255, 0), -1)
     return img_cop
 
 def calAverageDistance(points):
@@ -44,31 +43,16 @@ def addMiddlePoints(points):
                 new_points[i, :] = (points[(i-1)//2] + points[(i+1)//2]) // 2
     return new_points
 
-def randomShifter(points):
-    "Shifts a sequence of points to the left"
-    N = points.shape[0]
-    index = np.random.randint(low=1, high=N)
-    # print(index)
-
-    shifted_points = np.zeros(points.shape, dtype=points.dtype)
-    shifted_points[0:N-index] = points[index:]
-    shifted_points[-index:] = points[:index]
-    
-    return shifted_points
 #---------------------------- MAIN ----------------------------------#
 img = cv2.imread('tasbih.jpg', cv2.IMREAD_COLOR)
-
 M_i, N_i, _ = img.shape
 
-# generating points on an eclipse around the tasbih
-theta = np.linspace(0, 2*np.pi, 80)
-initial_points = np.stack([400 + 250*np.cos(theta), 450 + 300*np.sin(theta)], dtype=np.int32).T
+# generating points on an circle around the tasbih
+theta = np.linspace(0, 2*np.pi, 80, endpoint=False)
+initial_points = np.stack([390+250*np.cos(theta), 420+250*np.sin(theta)]).T
+initial_points = initial_points.astype(np.int32)
+img_grad = utl.calImageGradient(img, 2, 'Scharr')
 
-
-img_con = drawClosedContour(img, initial_points, 1)
-utl.showImg(img_con, 0.5)
-
-#%%
 # window size
 K = 3
 # number of states
@@ -76,7 +60,7 @@ M = K**2
 # number of points on contour
 N = initial_points.shape[0]
 
-points = initial_points[0:N]
+points = initial_points
 # viterbi implementation
 
 # table for viterbi algorithm
@@ -84,27 +68,20 @@ table = np.zeros((M, M, N), dtype=np.float64)
 # shows predecessor of each state
 path = np.zeros((M, M, N), dtype=np.int64)
 
-
-alpha = 2
+alpha = 5
 gamma = 1
-coeff = 0.1
-gradient_thr = 5
+coeff = 0.25
+grad_avg_level = (np.sum(img_grad) / img_grad.size)
+gradient_thr = 0.4 * grad_avg_level
 
-img_grad = utl.calImageGradient(img, 3, 'Scharr')
-
-# img_grad2 = utl.calImageGradient(img, 5, 'Scharr')
-
-# utl.showImg(utl.scaleIntensities(img_grad, 'C'), 0.5)
-# utl.showRange(img_grad)
 
 all_energy = np.zeros(M, dtype=np.float64)
 
-max_step = 300
+# at most it will take 500 step to reach the boundries
+max_step = 500
 for step in range(max_step):
-    # points = randomShifter(points)
     # average of length between points
     d_avg = calAverageDistance(points)
-    # print(d_avg)
     table[:, :, :] = 0
     path[:, :, :] = 0
     all_energy[:] = 0
@@ -155,19 +132,27 @@ for step in range(max_step):
         state_vector = np.array([best_state//K, best_state % K], dtype=np.int64)  
         points[o] += state_vector - (K-1)//2
         best_state = path[row_table, best_state, o]
-    img_con = drawClosedContour(img, points, 1)
+    img_con = drawClosedContour(img, points, 2)
     cv2.imwrite('./test/res-{}.jpg'.format(step), img_con)
-    print("going to step {}".format(step))
-    print(np.sum(np.abs(previous_points - points)))
-
+    print("At iteration {}".format(step))
+    
+    contour_grad_level = np.sum(img_grad[points[:, 0], points[:, 1]]) / N
+    
+    # check termination condition
+    if contour_grad_level >= 12 * grad_avg_level:
+        print("Contour is reached the boundries ...")
+        break
+    
+    # if contour is not moving, push it
     if np.sum(np.abs(previous_points - points)) <= 5:
         middle_point = np.sum(points, axis=0) / points.shape[0]
         distance_with_middle = (points - middle_point) * coeff
-        #points -= distance_with_middle.astype(np.int64)
         for i in range(points.shape[0]):
             if img_grad[points[i, 0], points[i, 1]] <= gradient_thr:
                 points[i] -= distance_with_middle[i].astype(np.int64)
     print("----------------------------")
+
+cv2.imwrite('res11.jpg', img_con)
 print("Done!")
 
 

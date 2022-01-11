@@ -31,7 +31,7 @@ for q in range(15):
     
     # rectangle that surrounds foreground
     rect_pos = (0, 0, N, 2600)
-    
+
     mask = np.zeros((M, N), dtype=np.uint8)
 
     # run grabCut with respect to rect_pos    
@@ -59,7 +59,7 @@ for q in range(15):
     
     foreground_mask = np.nonzero((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD))
     img_temp[foreground_mask] = 0
-    
+
     # Remove dot-shape noises using morphology
     img_gray = cv2.cvtColor(img_temp, cv2.COLOR_RGB2GRAY)
     img_gray[img_gray > 0] = 255
@@ -74,8 +74,10 @@ for q in range(15):
     img_temp[dilated_img == 0] = 0 
     # apply median blur to reduce noise
     img_median = cv2.medianBlur(img_temp, 21)    
+    
     # apply canny to find edges
     img_edges = cv2.Canny(img_median, 200, 450)
+    
     # find contours
     conts, _ = cv2.findContours(img_edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     temp_mat[:, :] = 0
@@ -87,7 +89,7 @@ for q in range(15):
     # add votes
     votes_matrix[temp_mat == 255] += 1    
     print("---------------")
-
+    
 # now take vote on votes_matrix value and draw final contours    
 votes_matrix[votes_matrix < vote_thr] = 0
 votes_matrix[votes_matrix >= vote_thr] = 1
