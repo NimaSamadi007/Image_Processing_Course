@@ -46,32 +46,56 @@ def maskGenerator(M, N, intersect, thr):
     
     return mask
 
+def applyFethring(img1, img2, intersect, thr):
+    "Applies feathirng to two image using a mask"
+    M, N, _ = img1.shape
+    
+    # generate mask:    
+    mask = maskGenerator(M, N, intersect, thr)
+    # apply the mask to both images
+    img1_feathered = (img1.astype(np.float64)) * mask
+    img2_feathered = (img2.astype(np.float64)) * (1-mask)
+    
+    # merge both images:    
+    merged_img = img1_feathered+img2_feathered
+    
+    return merged_img
 
+    
 img1 = cv.imread('res08.jpg', cv.IMREAD_COLOR)
 img2 = cv.imread('res08-sim.jpg', cv.IMREAD_COLOR)
 
 M, N, _ = img1.shape
 
-print(img1.shape)
-print(img2.shape)
-
+final_img = np.zeros((M, N, 3), np.float64)
 intersect = 372
-thr = 70
-mask = maskGenerator(M, N, intersect, thr)
 
-img1_feathered = (img1.astype(np.float64)) * mask
-img2_feathered = (img2.astype(np.float64)) * (1-mask)
+sigma = 2
+iterations = 5
+step = 40
+for i in range(1, iterations):
+    print("At step {}".format(i))
+    img1_blured = cv.GaussianBlur(img1, (6*sigma+1, 6*sigma+1), sigma, cv.BORDER_CONSTANT)
+    img2_blured = cv.GaussianBlur(img2, (6*sigma+1, 6*sigma+1), sigma, cv.BORDER_CONSTANT)
 
-img1_repr = img1_feathered.astype(np.uint8)
-img2_repr = img2_feathered.astype(np.uint8)
+    img1_laplacian = img1.astype(np.float64)-img1_blured.astype(np.float64)
+    img2_laplacian = img2.astype(np.float64)-img2_blured.astype(np.float64)
+        
+    merged_img = applyFethring(img1_laplacian, img2_laplacian, intersect, step*i)
+    
+    final_img += merged_img
+    # final_img_repr = utl.scaleIntensities(final_img, 'M')
+    # cv.imwrite('final-{}.jpg'.format(i), final_img_repr)    
 
-utl.showImg(img1_repr, 0.5, 'img1', False)
-utl.showImg(img2_repr, 0.5, 'img2', False)
+    img1 = np.copy(img1_blured)
+    img2 = np.copy(img2_blured)
 
-merged_img = img1_feathered+img2_feathered
-utl.showImg(merged_img.astype(np.uint8), 0.5)
+# final staep, add low frequencies:
+img1_blured = cv.GaussianBlur(img1, (6*sigma+1, 6*sigma+1), sigma, cv.BORDER_CONSTANT)
+img2_blured = cv.GaussianBlur(img2, (6*sigma+1, 6*sigma+1), sigma, cv.BORDER_CONSTANT)
+merged_img = applyFethring(img1_blured, img2_blured, intersect, step*iterations)
 
-# mask_repr = (mask * 255).astype(np.uint8)
-# utl.showImg(mask_repr, 0.5, 'n', False)
-# utl.showImg(255-mask_repr, 0.5)
+final_img += merged_img
 
+final_img_rep = utl.scaleIntensities(final_img, 'M')
+cv.imwrite('res10.jpg', final_img_rep)    
