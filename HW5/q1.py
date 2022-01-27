@@ -23,11 +23,13 @@ M, N, _ = img1.shape
 img1_landmarks = np.array([[191, 171], [262, 167], [201, 245], [260, 243],
                            [226, 178], [228, 207], [170, 245], [192, 278],
                            [228, 291], [264, 277], [290, 245], [147, 199],
-                           [309, 190], [0, 0], [N-1, 0], [0, M-1], [N-1, M-1]])
+                           [309, 190], [0, 0], [N-1, 0], [0, M-1], [N-1, M-1],
+                           [N//2-1, 0], [0, M//2-1], [N//2-1, M-1], [N-1, M//2-1]])
 img2_landmarks = np.array([[167, 170], [240, 169], [175, 243], [239, 242],
                            [200, 178], [201, 209], [144, 248], [176, 279],
                            [208, 295], [254, 272], [283, 246], [121, 196],
-                           [303, 193], [0, 0], [N-1, 0], [0, M-1], [N-1, M-1]])
+                           [303, 193], [0, 0], [N-1, 0], [0, M-1], [N-1, M-1],
+                           [N//2-1, 0], [0, M//2-1], [N//2-1, M-1], [N-1, M//2-1]])
 
 # making triangles in the first image
 triangle_obj = cv.Subdiv2D([0, 0, N, M])
@@ -87,40 +89,6 @@ for t, step in enumerate(steps):
                     (step) * final_warped_img2.astype(float)
     cv.imwrite('test/img-{}.jpg'.format(t), morphed_img.astype(np.uint8))
     cv.imwrite('test/img-{}.jpg'.format(2*num_step-1-t), morphed_img.astype(np.uint8))
-
-
-#%%
-final_warped_img1 = np.zeros((M, N, 3), np.uint8)  
-final_warped_img2 = np.zeros((M, N, 3), np.uint8)  
-mask = np.zeros((M, N), np.uint8)
-
-for i in range(num_tris):  
-    # warping img1 -> img2
-    affine_tran1 = cv.getAffineTransform(tri_vertices1[i].astype(np.float32), 
-                                         tri_vertices2[i].astype(np.float32))
-    warped_img = cv.warpAffine(img1, affine_tran1, (N, M))
-    mask[:, :] = 0
-    cv.drawContours(mask, [tri_vertices2[i]], 0, 255, -1)
-    final_warped_img1[mask == 255] = warped_img[mask == 255]
-    
-    # warping img2 -> img1
-    affine_tran2 = cv.getAffineTransform(tri_vertices2[i].astype(np.float32), 
-                                         tri_vertices1[i].astype(np.float32))
-    warped_img = cv.warpAffine(img2, affine_tran2, (N, M))
-    mask[:, :] = 0
-    cv.drawContours(mask, [tri_vertices1[i]], 0, 255, -1)
-    final_warped_img2[mask == 255] = warped_img[mask == 255]
-
-
-#%%
-# iters = 45
-# for t in range(iters+1):
-#     frame_img1 = (t/iters) * final_warped_img1.astype(np.float64) + (1-t/iters) * img1.astype(np.float64)
-#     frame_img2 = (1-t/iters) * final_warped_img2.astype(np.float64) + (t/iters) * img2.astype(np.float64)
-#     morphed_img = (0.5) * frame_img1 + (0.5) * frame_img2
-#     # t_img = (1-t/iters) * img1.astype(np.float64) + (t/iters) * img2.astype(np.float64)
-#     cv.imwrite('test/img-{}.jpg'.format(t), morphed_img.astype(np.uint8))
-#     # cv.imwrite('test/orig-{}.jpg'.format(t), t_img.astype(np.uint8))
-    
+  
     
     

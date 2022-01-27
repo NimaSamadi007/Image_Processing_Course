@@ -257,4 +257,10 @@ def calImageGradient(img, sigma, mode='Sobel'):
     grad_mat = np.sqrt(d_x ** 2 + d_y ** 2)
     return grad_mat.astype(np.float64)
 
+def drawPoints(img, points, thick):
+    " Draw points on image where points are in opencv format"
+    img_copy = np.copy(img)
+    for i in range(points.shape[0]):
+        cv2.circle(img_copy, (points[i, 0], points[i, 1]), thick, (0, 0, 255), -1)
+    return img_copy
     
