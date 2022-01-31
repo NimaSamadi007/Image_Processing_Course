@@ -3,6 +3,19 @@ import cv2 as cv
 import utils as utl
 
 #---------------------------------- FUNCTIONS --------------------------------#
+def fileReader(path):
+    "Reads the points file - each line contains a point on the image"
+    data = []
+    with open(path) as f:
+        lines = f.readlines()
+        points_str = [line.strip() for line in lines]
+        for point_str in points_str:
+            point = point_str.split(' ')
+            point = list(map(int, point))
+            data.append(point)
+    
+    return np.array(data, int)
+
 def drawTriangles(img, triangles_list):
     "Draws triangles based on triangle_list (output of opencv Subdiv2D)"
     img = np.copy(img)
@@ -19,17 +32,15 @@ img2 = cv.imread('res02.jpg', cv.IMREAD_COLOR)
 
 M, N, _ = img1.shape
 
-# landmark points
-img1_landmarks = np.array([[191, 171], [262, 167], [201, 245], [260, 243],
-                           [226, 178], [228, 207], [170, 245], [192, 278],
-                           [228, 291], [264, 277], [290, 245], [147, 199],
-                           [309, 190], [0, 0], [N-1, 0], [0, M-1], [N-1, M-1],
-                           [N//2-1, 0], [0, M//2-1], [N//2-1, M-1], [N-1, M//2-1]])
-img2_landmarks = np.array([[167, 170], [240, 169], [175, 243], [239, 242],
-                           [200, 178], [201, 209], [144, 248], [176, 279],
-                           [208, 295], [254, 272], [283, 246], [121, 196],
-                           [303, 193], [0, 0], [N-1, 0], [0, M-1], [N-1, M-1],
-                           [N//2-1, 0], [0, M//2-1], [N//2-1, M-1], [N-1, M//2-1]])
+# reading landmark points
+img1_landmarks = fileReader('./res01-points.txt')
+img2_landmarks = fileReader('./res02-points.txt')
+
+# drawing points
+# img1_points = utl.drawPoints(img1, img1_landmarks, 3)
+# img2_points = utl.drawPoints(img2, img2_landmarks, 3)
+# utl.showImg(img1_points, 1, 'img1', False)
+# utl.showImg(img2_points, 1, 'img2', True)
 
 # making triangles in the first image
 triangle_obj = cv.Subdiv2D([0, 0, N, M])
@@ -39,8 +50,6 @@ for point in img1_landmarks:
 
 triangles_list1 = triangle_obj.getTriangleList()
 num_tris = triangles_list1.shape[0]
-# img1_tri = drawTriangles(img1, triangles_list1)
-# utl.showImg(img1_tri, 1)
 
 tri_vertices1 = triangles_list1.reshape(-1, 3, 2).astype(int)
 tri_vertices2 = np.zeros(tri_vertices1.shape, int)
@@ -51,8 +60,16 @@ for i in range(num_tris):
                            (img1_landmarks[:, 1] == tri_vertices1[i, j, 1])) 
         tri_vertices2[i, j] = np.copy(img2_landmarks[index])
 
-#drawing triangles
 triangles_list2 = tri_vertices2.reshape(num_tris, -1)
+
+#drawing triangles
+# img1_tris = drawTriangles(img1, triangles_list1)
+# img2_tris = drawTriangles(img2, triangles_list2)
+# cv.imwrite('img1-tris.jpg', img1_tris)
+# cv.imwrite('img2-tris.jpg', img2_tris)
+# utl.showImg(img1_tris, 1, 'img1 tris', False)
+# utl.showImg(img2_tris, 1, 'img2 tris', True)
+
 
 num_step = 45
 final_warped_img1 = np.zeros((M, N, 3), np.uint8)  
@@ -90,5 +107,5 @@ for t, step in enumerate(steps):
     cv.imwrite('test/img-{}.jpg'.format(t), morphed_img.astype(np.uint8))
     cv.imwrite('test/img-{}.jpg'.format(2*num_step-1-t), morphed_img.astype(np.uint8))
   
-    
+print("Done!")
     
