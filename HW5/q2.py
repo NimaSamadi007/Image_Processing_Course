@@ -43,7 +43,7 @@ def solvePoissonPDE(laplacian_matrix, target_region, A):
     # convert laplacian to 
     laplace_col = laplacian_matrix.T.reshape(-1, 1)
     B = lil_matrix(((m-2)*(n-2),1), dtype=float)
-    B -= laplace_col
+    B += laplace_col
     for j in range(1, n-1):
         for i in range(1, m-1):
             # first or last row:
@@ -100,18 +100,16 @@ for chn in range(3):
     target_region = target_img[x_t:x_t+height, y_t:y_t+width, chn]
     
     # source image laplacian calculation:
-    laplacian_kernel = np.array([[0, 1, 0],
-                                 [1, -4, 1],
-                                 [0, 1, 0]], np.float32)
+    laplacian_kernel = np.array([[0, -1, 0],
+                                 [-1, 4, -1],
+                                 [0, -1, 0]], np.float32)
     source_laplacian = cv.filter2D(source_region.astype(np.float32), -1, laplacian_kernel, cv.BORDER_CONSTANT)
     
     target_region = target_region.astype(np.float32)
     print("Solving poisson equation for channel {}".format(chn+1))
     u_col = solvePoissonPDE(source_laplacian, target_region, A)
-    utl.showRange(u_col, 'N')
     target_values = u_col.reshape(N-2, M-2).T
     blended_target[:, :, chn] = target_values
-
 
 blended_target = utl.scaleIntensities(blended_target, 'C')
 target_img_orig = np.copy(target_img)
