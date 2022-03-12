@@ -193,3 +193,55 @@ This is the final result:
 ---
 ## HW5
 
+### Q1, morhping
+Here we are morhping two faces together in a way that is natural for human's eyes. The two original images are:
+
+
+|![](HW5/res01.jpg) | ![](HW5/res02.jpg) |
+|:------:|:-------:|
+|res01.jpg | res02.jpg|
+
+In `res01-points.txt` and `res02-points.txt` initial corresponded points in each image have been written. These are the points:
+
+|![](HW5/t1.jpg) | ![](HW5/t2.jpg) |
+|:------:|:-------:|
+| points of res01.jpg | points of res02.jpg|
+
+Next in the code I use Delaunay algorithm to draw triangles between points in `res01.jpg`. But I only find triangles in `res01.jpg` and transfer it to `res02.jpg`. By doing so I assure that the triangles are in similar and related areas of both images. These are the trinagles:
+
+|![](HW5/t3.jpg) | ![](HW5/t4.jpg) |
+|:------:|:-------:|
+| triangles of res01.jpg | triangles of res02.jpg|
+
+After that it is time to find an affine transformation for each triangle in `res01.jpg` to the corresponded triangle in `res02.jpg`. When I found the transformation, we must transfer points with a predefined coeffeicent (in range of [0,1]) and finally merge images at each step. The final result is a 3 second gif file that can be seen below:
+
+![](HW5/morph.gif)
+
+### Q2, Poisson blending
+
+Poisson blending is a very interesting method to blend two different images in a way that looks quite natural. Here I've chosed two images as below:
+
+|![](HW5/res05.jpg) | ![](HW5/res06.jpg) |
+|:------:|:-------:|
+| res05.jpg | res06.jpg|
+
+I'm blending `res05.jpg` to `res06.jpg`. In Poisson blending we must solve a linear system equations. However the number of elemnts and the required memory is quite huge (for this image it needs about 14 GB RAM!). But, luckily the system is sparse. So, I used `scipy` package to solve the system. This is the result of blending and naively cropping the moon and putting it in `res06.jpg`:
+
+|![](HW5/res07.jpg) | ![](HW5/res07-crop.jpg) |
+|:------:|:-------:|
+| blended image | cropped image |
+
+As you can see the blended image is way more natural than cropped image.
+
+### Q3, Blending and feathering
+
+Just like the previous question, again we are blending two images but not by using Poisson blending. We are using Laplacian stack to blend two images. The original images are:
+
+|![](HW5/res08.jpg) | ![](HW5/res09.jpg) |
+|:------:|:-------:|
+| res08.jpg | res09.jpg |
+
+
+The dimmensions and the place of the cucumber doesn't match with the banana. So, before blending I warp the `res08.jpg` toward `res09.jpg`. After that, by means of Laplacian stack, I blend two images and create a new fruit! Instead of resizing the images, I change the Gaussian filte at each step. The final result is:
+
+![](HW5/res10.jpg)
