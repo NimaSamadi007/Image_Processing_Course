@@ -123,6 +123,109 @@ I've used the texture synthesis method which was explained in the previous part.
 
 Although the result isn't perfect and we must use other methods like Patch Match.
 
+---
+## HW4
+
+### Q1, K-means
+In this problem I implemented the K-means clustering algorithm. It's not necessarily a image segmentation algorithm but it can be used as a simple method of doing so. We are trying to cluster the points given in the `Points.txt` file. Below is the representation of the points in 2D space:
+
+![](HW4/res01.jpg)
+
+As it is obvious from the plot, the best segmentation would be to divide points into two circle. However, default K-means method (with `K=2`) will result in the following segmentation:
+
+|![](HW4/res02.jpg) | ![](HW4/res03.jpg) |
+|:------:|:-------:|
+
+But if we change the features to the distance from origin, K-means will behave as expected:
+
+![](HW4/res04.jpg)
+
+### Q2, Mean-shift
+Mean-shift is a segmentation algorithm that can be used to segment pixels based on their color and distance distibution. In this question after grouping similar pixels into one cluster, I replace all of the pixels' color with an average color. However the algorithm is pretty slow. Below you can see the original and segmented image:
+
+|![](HW4/park.jpg) | ![](HW4/res05.jpg) |
+|:------:|:-------:|
+
+### Q3, SLIC
+SLIC is an oversegmentation method which can be used as initial stages of segmenting images. We are trying to oversegment the image and find superpixels. The number of cluster must be given before starting algorithm. This is the original image which will be oversegmented:
+
+![](HW4/slic.jpg)
+
+The result of different clusters can be seen below:
+
+|![](HW4/res06.jpg) | ![](HW4/res07.jpg) |
+|:------:|:-------:|
+|64 clusters|256 clusters|
+|![](HW4/res08.jpg) | ![](HW4/res09.jpg) |
+|1024 clusters|2048 clusters|
+
+### Q4, Segmentation
+In this problem we are trying to extract birds from this image:
+
+![](HW4/birds.jpg)
+
+As you can see, it's not straightforward to choose the best method of segmentation (at first glance it's even hard to recognize the birds!). 
+
+I've used the "grabcut" algorithm along with "contours" and some modifications. "Grabcut" runs multiple times and by using filters,  morphology, voting system, and contours I could achieve this result:
+
+![](HW4/res10.jpg)
+
+Though the result is not perfect. Plus, as "grabcut" is pretty random algorithm, the result might slightly change. However I've run the algorithm multiple times and used a voting method to preserve the dominated contoures.
+
+### Q5, Active contours
+
+In this problem we are using "active contours" to segment the "tasbih" from the image. This is the original image:
+
+![](HW4/tasbih.jpg)
+
+The user must draw an initial contour which encloses the desired object. This a typical contour:
+
+![](HW4/init-contour.jpg)
+
+The snake might stuck at some phases. So in those stages, I randomly push points to the center of contour. 
+
+<video width="320" height="240" controls>
+  <source src="./HW4/contour.mp4" type="video/mp4">
+</video>
+
+---
+## HW5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
