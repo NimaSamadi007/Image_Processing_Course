@@ -182,51 +182,14 @@ The user must draw an initial contour which encloses the desired object. This a 
 
 ![](HW4/init-contour.jpg)
 
-The snake might stuck at some phases. So in those stages, I randomly push points to the center of contour. 
+The snake might stuck at some phases. So in those stages, I randomly push points to the center of contour. You can see a short movie of initial contour and the way it changes its shape to fit the "tasbih" in `HW4/contour.mp4/ file. 
 
-<video width="320" height="240" controls>
-  <source src="./HW4/contour.mp4" type="video/mp4">
-</video>
-
----
-## HW5
+This is the final result:
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+![](HW4/res11.jpg)
 
 
 ---
 ## HW5
+
